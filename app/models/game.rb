@@ -26,7 +26,6 @@ class Game < ActiveRecord::Base
 	end
 
 	def play_card(player, card)
-		on_play_card
 		player.play_area.add_card(card)
 		if card.is_action == 1
 			player.set_actions(player.actions - 1)
