@@ -46,7 +46,7 @@ class CardPile {
 
 class Asset {
     static image(name) {
-        return "/app/assets/images/" + name;
+			return "/assets/" + name;
     }
 }
 

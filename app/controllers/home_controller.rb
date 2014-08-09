@@ -28,4 +28,11 @@ class HomeController < ApplicationController
 		@u = Player.where(game_id: @game.id, user_id: @user.id).take
 		render :play
 	end
+
+	def play
+		@game = Game.find(params[:id])
+		@user = User.where(id: session[:user]).take
+		@u = Player.where(game_id: @game.id, user_id: @user.id).take
+		render :play2
+	end
 end

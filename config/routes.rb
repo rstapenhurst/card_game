@@ -29,6 +29,7 @@ Rails.application.routes.draw do
 	post '/login' => 'home#login'
 	post '/logout' => 'home#logout'
 	get '/play/:id' => 'home#play'
+	get '/play2/:id' => 'home#play2'
 
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
