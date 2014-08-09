@@ -36,7 +36,9 @@ button#logout {
 	-->
 	<div id="main">
 		<%= yield %>
+		<% if @dont_spacer.nil? %>
 		<div class="spacer-big"></div>
+		<% end %>
 		<div></div>
 		<div class="footer">
 			<% unless session[:user].nil? %>
