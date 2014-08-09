@@ -45,12 +45,6 @@ class Game < ActiveRecord::Base
 		check_auto_advance
 	end
 
-	def on_play_card
-		x = nil
-
-
-	end
-
 	def buy_card(player, supply)
 		candidate_card = supply.card_pile.top_card
 		if player.money >= candidate_card.cost and player.buys >= 1
