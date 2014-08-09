@@ -8,3 +8,6 @@ Rails.application.config.assets.version = '1.0'
 # Rails.application.config.assets.precompile += %w( search.js )
 Rails.application.config.assets.precompile += %w( pure-min.css )
 Rails.application.config.assets.precompile += %w( pure-theme.css )
+
+Rails.application.config.assets.precompile += %w( game.js )
+Rails.application.config.assets.precompile += %w( phaser.js )
