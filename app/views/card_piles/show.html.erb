@@ -1,0 +1,25 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Name:</strong>
+  <%= @card_pile.name %>
+</p>
+
+<p>
+	<strong>Cards:</strong>
+	<table>
+		<% @card_pile.piles.each do |pile| %>
+			<tr>
+				<td>
+					<%= link_to pile.card.name, card_path(pile.card) %>
+				</td>
+				<td>
+					<%= pile.card_order %>
+				</td>
+			</tr>
+		<% end %>
+	</table>
+</p>
+
+<%= link_to 'Edit', edit_card_pile_path(@card_pile) %> |
+<%= link_to 'Back', card_piles_path %>

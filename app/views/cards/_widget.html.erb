@@ -1,0 +1,14 @@
+<% type = yours ? "u-card" : "card" %>
+<div class="<%= type %>">
+	<% unless card.nil? %>
+		<div class="card-title"><%= card.card_template.name %> (<%= card.id %>)</div>
+	<div>
+		<table>
+			<% card.card_template.card_attributes.pluck(:key, :value).each do |attrib| %>
+				<tr><td><%=attrib[0]%></td><td><%=attrib[1]%></td></tr>
+		<% end %>
+		</table>
+	</div>
+<% end %>
+</div>
+

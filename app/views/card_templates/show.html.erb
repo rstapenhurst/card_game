@@ -1,0 +1,25 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Id:</strong>
+	<%= @card_template.id %>
+</p>
+<p>
+  <strong>Name:</strong>
+  <%= @card_template.name %>
+</p>
+<table>
+	<% @card_template.card_attributes.each do |att| %>
+		<tr>
+			<td>
+				<%= link_to att.key, card_attribute_path(att) %>
+			</td>
+			<td>
+				<%= att.value %>
+			</td>
+		</tr>
+	<% end %>
+</table>
+
+<%= link_to 'Edit', edit_card_template_path(@card_template) %> |
+<%= link_to 'Back', card_templates_path %>

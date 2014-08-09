@@ -1,0 +1,29 @@
+<%= form_for(@pile) do |f| %>
+  <% if @pile.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@pile.errors.count, "error") %> prohibited this pile from being saved:</h2>
+
+      <ul>
+      <% @pile.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :card_pile_id %><br>
+		<%= f.select(:card_pile_id, options_from_collection_for_select( CardPile.all, :id, :name )) %>
+  </div>
+  <div class="field">
+    <%= f.label :card_id %><br>
+		<%= f.select(:card_id, options_from_collection_for_select( Card.all, :id, :name )) %>
+  </div>
+  <div class="field">
+    <%= f.label :card_order %><br>
+    <%= f.number_field :card_order %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

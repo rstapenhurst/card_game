@@ -1,0 +1,61 @@
+<div class="header">
+	<h1>Welcome to Dominion</h1>
+</div>
+
+<div class="content">
+			<h2>Open Games</h2>
+			<table class="pure-table pure-table-bordered" style="width:100%">
+				<tr>
+					<th>Name</th>
+					<th>Players</th>
+					<th></th>
+				</tr>
+				<% Game.where(phase: "init").joins("LEFT OUTER JOIN players ON (games.id = players.game_id AND players.user_id = #{@user.id})").where('players.id IS NULL').each do |game| %> 
+				<tr>
+					<td><%= game.name %></td>
+					<td><%= game.players.count %></td>
+					<td>
+						<%= form_tag("/games/" + game.id.to_s + "/add_player") do %>
+							<input name="user_id" type="hidden" value="<%= @user.id %>">
+						<button class="pure-button">join</button>
+					<% end %>
+					</td>
+				</tr>
+			<% end %>
+			</table>
+		</div>
+		<div class="content">
+			<h2>My Games</h2>
+			<table class="pure-table pure-table-bordered" style="width:100%">
+				<tr>
+					<th>Name</th>
+					<th>Players</th>
+					<th>Turn</th>
+					<th>Phase</th>
+					<th></th>
+				</tr>
+				<% @user.games.each do |game| %>
+
+				<tr>
+					<td><%= game.name %></td>
+					<td><%= game.players.count %></td>
+					<td><%= game.turn %></td>
+					<td><%= game.phase %></td>
+					<td><a href="/play/<%=game.id%>">play</a></td>
+				</tr>
+			<% end %>
+			</table>
+		</div>
+
+<div class="content" style="margin-top: 100px;">
+	<%= form_tag("/games", class: "pure-form") do %>
+		<fieldset>
+		<legend>Create a new game</legend>
+		<%= label_tag("game[name]", "Title") %>
+		<%= text_field_tag("game[name]") %>
+		<%= submit_tag("Create!", class: "pure-button pure-button-primary") %>
+	</fieldset>
+<% end %>
+</div>
+
+

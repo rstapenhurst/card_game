@@ -1,0 +1,29 @@
+<h1>Listing player_attributes</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Key</th>
+      <th>Value</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @player_attributes.each do |player_attribute| %>
+      <tr>
+        <td><%= player_attribute.player %></td>
+        <td><%= player_attribute.key %></td>
+        <td><%= player_attribute.value %></td>
+        <td><%= link_to 'Show', player_attribute %></td>
+        <td><%= link_to 'Edit', edit_player_attribute_path(player_attribute) %></td>
+        <td><%= link_to 'Destroy', player_attribute, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Player attribute', new_player_attribute_path %>

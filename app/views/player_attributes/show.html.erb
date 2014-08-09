@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Player:</strong>
+  <%= @player_attribute.player %>
+</p>
+
+<p>
+  <strong>Key:</strong>
+  <%= @player_attribute.key %>
+</p>
+
+<p>
+  <strong>Value:</strong>
+  <%= @player_attribute.value %>
+</p>
+
+<%= link_to 'Edit', edit_player_attribute_path(@player_attribute) %> |
+<%= link_to 'Back', player_attributes_path %>

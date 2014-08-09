@@ -1,0 +1,158 @@
+<% content_for :head do %>
+	<style>
+#messagebox {
+	color: red;
+}
+	</style>
+	<script>
+
+var dispatcher;
+$(function() {
+		dispatcher = new WebSocketRails(location.host + "/websocket", true);
+		var channel = dispatcher.subscribe('game_updates');
+		dispatcher.on_open = function(data) {
+		console.log("Connected to " + location.host);
+		}
+		dispatcher.trigger('noob_event', '');
+		channel.bind('noob_response', function(data) {
+			console.log("I am not a noob");
+			console.log(data);
+			});
+		channel.bind('card_played_event', function(data) {
+		  console.log('Card played');
+			console.log(data);
+			location.reload()
+			});
+});
+
+	$(function() {
+
+			$(".play-card-button").click(function() {
+				dispatcher.trigger('card_play_event', '{"card_id":"' + this.getAttribute("href") + '","game_id":"<%=@game.id%>"}');
+			});
+
+		$(".supply").click(function() {
+
+			$.post("/games/<%= @game.id %>/buy_card",
+				{
+					supply_id: $(this).attr("href")
+					}).done(function() {
+						location.reload();
+						
+						}).fail(function(jqXHR, data) {
+							$("#messagebox").text("Error buying card: " + data.error);
+							});
+
+			});
+		});
+	</script>
+<% end %>
+
+<div class="header">
+	<h1><%= @game.name %></h1>
+</div>
+
+<div class="marketing">
+<div id="messagebox"></div>
+</div>
+
+<div class="pure-g">
+	<div class="pure-u-4-24">
+		<table class="pure-table">
+			<tr><th>name</th><th>count</th><th>price</th></tr>
+			<% @game.supplies.each do |supply| %>
+				<tr href="<%= supply.id %>" class="supply">
+					<td><%= supply.name %></td>
+					<td><%= supply.cards.count %></td>
+					<td><%= supply.cards.take.cost %></td>
+				</tr>
+			<% end %>
+		</table>
+	</div>
+	<div class="pure-u-20-24">
+
+		<div id="info">
+			<span class="info-item">
+				<span>Current Player: </span>
+				<span><%= @game.current_player.name %></span>
+			</span>
+			<span class="info-item">
+				<span>Phase: </span>
+				<span><%= @game.phase %></span>
+			</span>
+			<span class="info-item">
+				<%= form_tag("/games/" + @game.id.to_s + "/advance_phase") do%>
+					<button class="pure-button pure-button-primary">ADVANCE</button>
+			<% end %>
+			</span>
+		</div>
+
+
+		<div id="play-area" class="cards-face-up">
+			<h3>play (<%= @game.current_player.play_area.id%>)</h3>
+			<table class="pure-table card-table">
+				<% play_area = @game.current_player.play_area.cards.order("piles.card_order") %>
+				<tr>
+					<% play_area.each do |card| %>
+						<td>
+						<%= render partial: "cards/widget", locals: {card: card, yours: @game.current_player.id == @u.id} %>
+					</td>
+				<% end %>
+				</tr>
+			</table>
+		</div>
+
+		<div id="hand" class="cards-face-up">
+			<h3>hand (<%= @u.hand.id %>)</h3>
+			<table class="pure-table card-table">
+				<% hand_cards = @u.hand.cards.order("piles.card_order") %>
+				<tr>
+					<% hand_cards.each do |card| %>
+						<td>
+						<%= render partial: "cards/widget", locals: {card: card, yours: true} %>
+					</td>
+				<% end %>
+				</tr>
+				<tr>
+					<% hand_cards.each do |card| %>
+						<td>
+							<button class="pure-button play-card-button" href="<%=card.id%>">play</button>
+					</td>
+				<% end %>
+				</tr>
+			</table>
+		</div>
+
+		<div class="spacer-small">
+		</div>
+
+	</div>
+</div>
+
+<div class="pure-g">
+	<div class="pure-u-4-24"></div>
+	<div class="pure-u-16-24">
+<table class="pure-table pure-table-bordered" style="width:100%">
+	<tr>
+		<th>Player</th>
+		<th>Deck</th>
+		<th>Discard</th>
+		<% PlayerAttribute.where(player_id: @game.players.pluck(:id)).each do |attrib|  %>
+			<th><%= attrib.key %></th>
+		<% end %>
+	</tr>
+	<% @game.players.order("players.play_order").each do |player| %>
+		<tr class="<%= player == @game.current_player ? "player-info-current" : "player-info" %>">
+			<td><%=player.name%></td>
+			<td><%= player.deck.cards.count %></td>
+			<td><%= render partial: "cards/widget", locals: {card: player.discard.cards.order("piles.card_order DESC").take, yours: false}%></td>
+		<% PlayerAttribute.where(player_id: @game.players.pluck(:id)).each do |attrib|  %>
+			<td><%= player.get_attrib(attrib.key) %></td>
+		<% end %>
+		</tr>
+	<% end %>
+</table>
+</div>
+	<div class="pure-u-4-24"></div>
+</div>
+

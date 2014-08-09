@@ -1,0 +1,15 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Card template:</strong>
+	<%= link_to @card.card_template.name, card_template_path(@card.card_template)	%>
+	</p>
+
+<% if @card.card_pile %>
+	<p>
+		<%= link_to @card.card_pile.name, card_pile_path(@card.card_pile)	%>
+	</p>
+<% end %>
+
+<%= link_to 'Edit', edit_card_path(@card) %> |
+<%= link_to 'Back', cards_path %>

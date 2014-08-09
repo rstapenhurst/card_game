@@ -1,0 +1,17 @@
+<% content_for :head do %>
+	<script>
+$(function() {
+		var dispatcher = new WebSocketRails(location.host + "/websocket", true);
+		var channel = dispatcher.subscribe('game_updates');
+		dispatcher.on_open = function(data) {
+		console.log("I am a noob");
+		}
+		dispatcher.trigger('noob_event', '');
+		channel.bind('noob_response', function(data) {
+			console.log("I am not a noob");
+			console.log(data);
+			});
+		});
+</script>
+<% end %>
+I am a noob

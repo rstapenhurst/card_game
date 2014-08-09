@@ -1,0 +1,31 @@
+<h1>Listing card_attributes</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Card template</th>
+      <th>Key</th>
+      <th>Value</th>
+      <th>Attribute order</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @card_attributes.each do |card_attribute| %>
+      <tr>
+        <td><%= card_attribute.card_template.name %></td>
+        <td><%= card_attribute.key%></td>
+        <td><%= card_attribute.value %></td>
+        <td><%= card_attribute.attribute_order %></td>
+        <td><%= link_to 'Show', card_attribute %></td>
+        <td><%= link_to 'Edit', edit_card_attribute_path(card_attribute) %></td>
+        <td><%= link_to 'Destroy', card_attribute, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Card attribute', new_card_attribute_path %>

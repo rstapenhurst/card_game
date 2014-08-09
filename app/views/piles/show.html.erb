@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Card pile:</strong>
+  <%= @pile.card_pile %>
+</p>
+
+<p>
+  <strong>Card:</strong>
+  <%= @pile.card %>
+</p>
+
+<p>
+  <strong>Card order:</strong>
+  <%= @pile.card_order %>
+</p>
+
+<%= link_to 'Edit', edit_pile_path(@pile) %> |
+<%= link_to 'Back', piles_path %>

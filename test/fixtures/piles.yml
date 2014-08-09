@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  card_pile_id: 
+  card_id: 
+  card_order: 1
+
+two:
+  card_pile_id: 
+  card_id: 
+  card_order: 1

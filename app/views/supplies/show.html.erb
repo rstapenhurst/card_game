@@ -1,0 +1,19 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Game:</strong>
+  <%= @supply.game %>
+</p>
+
+<p>
+  <strong>Supply type:</strong>
+  <%= @supply.supply_type %>
+</p>
+
+<p>
+  <strong>Card pile:</strong>
+  <%= @supply.card_pile %>
+</p>
+
+<%= link_to 'Edit', edit_supply_path(@supply) %> |
+<%= link_to 'Back', supplies_path %>

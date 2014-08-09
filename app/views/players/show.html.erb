@@ -1,0 +1,39 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Game:</strong>
+  <%= @player.game %>
+</p>
+
+<p>
+  <strong>User:</strong>
+  <%= @player.user %>
+</p>
+
+<p>
+  <strong>Play order:</strong>
+  <%= @player.play_order %>
+</p>
+
+<p>
+  <strong>Deck:</strong>
+  <%= @player.deck.name %>
+</p>
+
+<p>
+  <strong>Hand:</strong>
+  <%= @player.hand.name %>
+</p>
+
+<p>
+  <strong>Play area:</strong>
+  <%= @player.play_area.name %>
+</p>
+
+<p>
+  <strong>Discard:</strong>
+  <%= @player.discard.name %>
+</p>
+
+<%= link_to 'Edit', edit_player_path(@player) %> |
+<%= link_to 'Back', players_path %>

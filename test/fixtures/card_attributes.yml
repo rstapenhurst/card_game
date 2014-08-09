@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  card_template_id: 
+  attribute: MyString
+  value: 1
+  attribute_order: 1
+
+two:
+  card_template_id: 
+  attribute: MyString
+  value: 1
+  attribute_order: 1

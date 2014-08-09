@@ -1,0 +1,18 @@
+
+<div id="player-info">
+	<table class="pure-table">
+		<tr>
+			<th>Deck (<%= player.deck.cards.count %>)</th><th>Discard (<%= player.discard.cards.count%>)</th>
+			<% player.player_attributes.each do |attrib| %>
+				<th><%= attrib.key %></th>
+		<% end %>
+		</tr>
+		<tr>
+			<td><div></div></td>
+			<td><%= render partial: "cards/widget", locals: {card: player.discard.cards.order("piles.card_order DESC").take, yours: @u == player}%></td>
+			<% player.player_attributes.each do |attrib| %>
+				<th><%= attrib.value %></th>
+		<% end %>
+		</tr>
+	</table>
+</div>

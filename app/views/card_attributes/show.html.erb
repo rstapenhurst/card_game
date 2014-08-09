@@ -1,0 +1,24 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <strong>Card template:</strong>
+  <%= link_to @card_attribute.card_template.name, card_template_path(@card_attribute.card_template) %>
+</p>
+
+<p>
+  <strong>Key:</strong>
+  <%= @card_attribute.key%>
+</p>
+
+<p>
+  <strong>Value:</strong>
+  <%= @card_attribute.value %>
+</p>
+
+<p>
+  <strong>Attribute order:</strong>
+  <%= @card_attribute.attribute_order %>
+</p>
+
+<%= link_to 'Edit', edit_card_attribute_path(@card_attribute) %> |
+<%= link_to 'Back', card_attributes_path %>

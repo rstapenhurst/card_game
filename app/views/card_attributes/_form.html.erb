@@ -1,0 +1,33 @@
+<%= form_for(@card_attribute) do |f| %>
+  <% if @card_attribute.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@card_attribute.errors.count, "error") %> prohibited this card_attribute from being saved:</h2>
+
+      <ul>
+      <% @card_attribute.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+		<%= f.label :card_template_id %><br>
+		<%= f.select(:card_template_id, options_from_collection_for_select( CardTemplate.all, :id, :name )) %>
+  </div>
+  <div class="field">
+    <%= f.label :key %><br>
+    <%= f.text_field :key %>
+  </div>
+  <div class="field">
+    <%= f.label :value %><br>
+    <%= f.number_field :value %>
+  </div>
+  <div class="field">
+    <%= f.label :attribute_order %><br>
+    <%= f.number_field :attribute_order %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>

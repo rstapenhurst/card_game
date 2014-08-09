@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dominion</title>
+<%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
+<%= stylesheet_link_tag    'pure-min', 'pure-theme' %>
+<%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+<%= csrf_meta_tags %>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<%= yield :head %>
+
+<style>
+div.footer {
+	position: fixed;
+	bottom: 0;
+	width: 100%;
+}
+button#logout {
+	margin-left: 10px;
+}
+</style>
+
+</head>
+
+<body class="pure-skin-tubs">
+
+<div id="layout">
+	<div id="menu">
+		<div class="pure-menu pure-menu-open">
+			<a class="pure-menu-heading" href="/">Home</a>
+			<hr />
+			<%= yield :menu %>
+		</div>
+	</div>
+	<div id="main">
+		<%= yield %>
+		<div class="spacer-big"></div>
+		<div></div>
+		<div class="footer">
+			<% unless session[:user].nil? %>
+					<%= form_tag('/logout') do %>
+				<span>Logged in as: </span><span><em><%= User.find(session[:user]).name %></em></span>
+				<span>
+					<button class="pure-button">logout</button>
+				</span>
+				<% end %>
+			<% end %>
+		</div>
+	</div>
+</div>
+
+
+</body>
+</html>
