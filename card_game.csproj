@@ -17,6 +17,7 @@
     <IISExpressUseClassicPipelineMode />
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="app\assets\images\card_face_empty.png" />
     <Content Include="app\assets\javascripts\application.js" />
     <TypeScriptCompile Include="app\assets\javascripts\game.js.ts" />
     <Content Include="app\assets\javascripts\phaser.d.ts" />
@@ -40,6 +41,8 @@
     <Content Include="public\assets\manifest-5f6bae81db79f9fd7371344ca8379c23.json" />
     <Content Include="public\assets\pure-min-11b566b9f389bd4c8453521cb367c111.css.gz" />
     <Content Include="public\assets\pure-theme-d294cae50fae7841a31e7a8fd577805b.css.gz" />
+    <Content Include="app\assets\images\.keep" />
+    <Content Include="app\assets\images\card_face_empty.xcf" />
     <None Include="web.Debug.config">
       <DependentUpon>web.config</DependentUpon>
     </None>
@@ -79,6 +82,7 @@
     <TypeScriptRemoveComments>false</TypeScriptRemoveComments>
     <TypeScriptSourceMap>true</TypeScriptSourceMap>
     <TypeScriptModuleKind>AMD</TypeScriptModuleKind>
+    <OutputPath>public\assets\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <TypeScriptTarget>ES5</TypeScriptTarget>
