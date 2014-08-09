@@ -33,6 +33,6 @@ class HomeController < ApplicationController
 		@game = Game.find(params[:id])
 		@user = User.where(id: session[:user]).take
 		@u = Player.where(game_id: @game.id, user_id: @user.id).take
-		render :play2
+		render :play3
 	end
 end
