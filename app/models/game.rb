@@ -67,7 +67,10 @@ class Game < ActiveRecord::Base
 		check_auto_advance(events)
 	end
 
-	def buy_card(player, supply)
+	def buy_card(player, supply, events)
+		events << {
+			test: "log value"
+		}
 		candidate_card = supply.card_pile.top_card
 		if player.money >= candidate_card.cost and player.buys >= 1
 			player.discard.add_card(candidate_card)
@@ -77,10 +80,10 @@ class Game < ActiveRecord::Base
 			player.set_buys(current_buys)
 
 			if supply.name == "Province" and supply.card_pile.is_empty
-				self.phase = "Finished"
+				set_phase('finished', events)
 				save
 			end
-			check_auto_advance([])
+			check_auto_advance(events)
 		end
 	end
 
@@ -198,19 +201,24 @@ class Game < ActiveRecord::Base
 	end
 
 	def is_legal(player, card)
+		puts "Legality. Phase: #{phase}, is_action: #{card.is_action}, is_treasure: #{card.is_treasure}"
 		if !is_players_turn(player)
 			return false
 		end
 
-		if phase == "init"
+		if phase == 'init'
 			return false
 		end
 
-		if phase == "action" and card.is_action == 0 and player.actions >= 1
+		if phase == 'action' and card.is_action == 0 and player.actions >= 1
 			return false
 		end
 
-		if phase == "treasure" and card.is_treasure == 0
+		if phase == 'treasure' and card.is_treasure == 0
+			return false
+		end
+
+		if phase == 'buy'
 			return false
 		end
 
