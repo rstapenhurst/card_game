@@ -5,3 +5,5 @@ tmp/
 .DS_Store
 obj/
 public/assets
+app/assets/javascripts/game.js.js
+
