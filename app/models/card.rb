@@ -18,6 +18,10 @@ class Card < ActiveRecord::Base
 		end
 	end
 
+	def has_attr(attr)
+		return card_attributes.where(key: attr).count > 0
+	end
+
 	def view
 		return card_attributes.collect{|att|
 				[att.key, att.value]

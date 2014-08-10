@@ -86,10 +86,6 @@ class Game < ActiveRecord::Base
 				all_log: "Set player buys to #{player.buys}"
 			}
 
-			if supply.name == "Province" and supply.card_pile.is_empty
-				set_phase('finished', events)
-				save
-			end
 			check_auto_advance(events)
 		end
 	end
@@ -114,9 +110,9 @@ class Game < ActiveRecord::Base
 		add_supply('Silver', 'treasure', 10)
 		add_supply('Gold', 'treasure', 10)
 
-		add_supply('Estate', 'victory', 8)
-		add_supply('Duchy', 'victory', 8)
-		add_supply('Province', 'victory', 8)
+		add_supply('Estate', 'victory', 10)
+		add_supply('Duchy', 'victory', 10)
+		add_supply('Province', 'victory', 10)
 
 		add_supply('Village', 'kingdom', 10)
 		add_supply('Smithy', 'kingdom', 10)
@@ -189,6 +185,44 @@ class Game < ActiveRecord::Base
 		elsif self.phase == 'cleanup'
 			advance_phase(events)
 		end
+
+		check_victory(events)
+	end
+
+	def check_victory(events)
+		empty_pile_count = 0
+		provinces_empty = false
+		supplies.each do |supply|
+			if supply.card_pile.is_empty
+				empty_pile_count += 1
+				if (supply.name == "Province")
+					provinces_empty = true
+				end
+			end
+		end
+		puts "Victory? Empty piles: #{empty_pile_count}, provs: #{provinces_empty}"
+		if empty_pile_count >= 3 or provinces_empty
+			set_phase('finished', events)
+			players.each do |player|
+				victory = count_points_in_pile(player.deck) +
+					count_points_in_pile(player.discard) +
+					count_points_in_pile(player.hand) +
+					count_points_in_pile(player.play_area)
+				events << {
+					all_log: "Player #{player.name} has #{victory} victory points"
+				}
+			end
+		end
+	end
+
+	def count_points_in_pile(pile)
+		victory = 0
+		pile.cards.each do |card|
+			if card.has_attr('victory_points')
+				victory += card.victory_points
+			end
+		end
+		return victory
 	end
 
 	def current_player_query
