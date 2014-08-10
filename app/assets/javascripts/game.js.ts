@@ -70,6 +70,7 @@ class CardGame {
         this.myHand = new CardPile(this, "hand", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.CardHeight - Util.Padding));
         this.playArea = new CardPile(this, "play-area", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.Padding - Util.CardHeight - Util.Padding));
         this.myHand.addCard(new Card(0, true));
+
     }
 
 }
@@ -77,3 +78,4 @@ class CardGame {
 window.onload = () => {
     var game = new CardGame();
 }
+
