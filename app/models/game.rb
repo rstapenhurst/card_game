@@ -266,6 +266,7 @@ class Game < ActiveRecord::Base
 					id: opponent.id,
 					deck_size: opponent.deck.cards.count,
 					discard: {
+						id: opponent.discard.id,
 						size: opponent.discard.cards.count,
 					}.merge!(opponent.discard.is_empty ? {} : { top: opponent.discard.top_card.view }),
 					hand_size: opponent.hand.cards.count,
@@ -276,6 +277,7 @@ class Game < ActiveRecord::Base
 				id: player.id,
 				deck_size: player.deck.cards.count,
 				discard: {
+					id: player.discard.id,
 					size: player.discard.cards.count,
 				}.merge!(player.discard.is_empty ? {} : { top: player.discard.top_card.view }),
 				hand: player.hand.ordered_cards.collect{|hand_card|
@@ -293,6 +295,7 @@ class Game < ActiveRecord::Base
 				money: current_player.money
 			},
 			trash: {
+				id: trash.id,
 				size: trash.cards.count
 			}.merge!(trash.is_empty ? {} : { topcard: trash.top_card.view }),
 			phase: phase,
