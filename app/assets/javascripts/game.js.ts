@@ -20,6 +20,7 @@ class Card {
     buys: number;
     cards: number;
 
+    name: string;
     template_name: string;
 
     is_action: boolean;
@@ -39,12 +40,17 @@ declare class You {
 
 declare class Player {
   name: string;
+
+  money: number;
+  actions: number;
+  buys: number;
 }
 
 declare class GameState {
   phase: string;
   current_player: Player;
   player: You;
+  play_area: Array<Card>;
 }
 
 declare var game_id: number;
@@ -71,8 +77,10 @@ class CardGame {
     state: GameState;
 
     handWidgets: Phaser.Group;
+    playAreaWidgets: Phaser.Group;
 
     turnIndicator: Phaser.Text;
+    currentPlayerStatus: Phaser.Text;
 
     constructor() {
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
@@ -83,22 +91,32 @@ class CardGame {
         this.game.load.image('button', Asset.image('button.png'));
     }
 
-    onFullGameState = (data) => {
-      this.state = data.game;
-      this.handWidgets.removeAll(true, true);
+    drawHandOrPlay = (cards: Array<Card>, group: Phaser.Group) => {
+      group.removeAll(true, true);
       var xpos: number = 10;
-      this.state.player.hand.forEach((x) => {
+      cards.forEach((x) => {
         var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
         text.x = xpos + 30;
         text.y = 20;
 
-        this.handWidgets.create(xpos, 0, 'card_face_empty');
-        this.handWidgets.add(text);
+        var sprite = group.create(xpos, 0, 'card_face_empty');
+        sprite.inputEnabled = true;
+        sprite.events.onInputDown.add(() => {
+          this.trigger('card_play_event', {card_id: x.id});
+        }, this);
+        group.add(text);
 
         xpos = xpos + Util.CardPadded;
       });
 
+    }
+
+    onFullGameState = (data) => {
+      this.state = data.game;
+      this.drawHandOrPlay(this.state.player.hand, this.handWidgets);
+      this.drawHandOrPlay(this.state.play_area, this.playAreaWidgets);
       this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
+      this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
     }
 
     trigger = (eventName, data) => {
@@ -121,6 +139,7 @@ class CardGame {
     create = () => {
         this.game.stage.backgroundColor = 0xefefef;
         this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
+        this.currentPlayerStatus = this.game.add.text(0, 40, "Status: ???", {font: "14px Arial"});
 
         var label = new Phaser.Text(this.game, 20, 10, "Advance", {font: "12px Arial", fill: "#ffff00"});
         var advanceButton = this.game.add.button(400, 0, 'button', () => { this.doAdvance(); });
@@ -129,6 +148,10 @@ class CardGame {
         this.handWidgets = this.game.add.group();
         this.handWidgets.x = 10;
         this.handWidgets.y = this.game.height - 200;
+
+        this.playAreaWidgets = this.game.add.group();
+        this.playAreaWidgets.x = 10;
+        this.playAreaWidgets.y = this.game.height - 400;
 
         this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
