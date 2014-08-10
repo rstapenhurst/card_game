@@ -88,9 +88,10 @@ class CardGame {
       this.handWidgets.removeAll(true, true);
       var xpos: number = 10;
       this.state.player.hand.forEach((x) => {
-        var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
+        var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
         text.x = xpos + 30;
         text.y = 20;
+
         this.handWidgets.create(xpos, 0, 'card_face_empty');
         this.handWidgets.add(text);
 
