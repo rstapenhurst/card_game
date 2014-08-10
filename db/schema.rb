@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140803222734) do
+ActiveRecord::Schema.define(version: 20140810175237) do
 
   create_table "card_attributes", force: true do |t|
     t.integer  "card_template_id"
@@ -51,7 +51,10 @@ ActiveRecord::Schema.define(version: 20140803222734) do
     t.integer  "turn"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.integer  "trash_id"
   end
+
+  add_index "games", ["trash_id"], name: "index_games_on_trash_id"
 
   create_table "piles", force: true do |t|
     t.integer  "card_pile_id"

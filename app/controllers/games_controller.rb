@@ -35,6 +35,7 @@ class GamesController < ApplicationController
     @game = Game.new(game_params)
 		@game.phase = 'init'
 		@game.turn = 0
+		@game.trash = CardPile.create(name: "Trash");
 
     respond_to do |format|
       if @game.save

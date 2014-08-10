@@ -2,6 +2,7 @@ class Game < ActiveRecord::Base
 	has_many :players, dependent: :destroy
 	has_many :supplies, dependent: :destroy
 	has_many :cards, dependent: :destroy
+	belongs_to :trash, class_name:"CardPile", dependent: :destroy
 
 	def create_player_for_user(user_id)
 		user = User.find(user_id)
@@ -205,17 +206,17 @@ class Game < ActiveRecord::Base
 			supplies: supplies.collect{|supply|
 				{
 					id: supply.id,
-					size: supply.cards.count,
-					top_card: supply.card_pile.top_card.view
-				}
+					size: supply.cards.count
+				}.merge!(supply.card_pile.is_empty ? {} : { top: supply.card_pile.top_card.view })
 			},
 			opponents: players.select{|candidate| candidate != player}.collect{|opponent|
 				{
 					name: opponent.name,
 					id: opponent.id,
 					deck_size: opponent.deck.cards.count,
-					discard_size: opponent.discard.cards.count,
-					discard_top: opponent.discard.top_card.view,
+					discard: {
+						size: opponent.discard.cards.count,
+					}.merge!(opponent.discard.is_empty ? {} : { top: opponent.discard.top_card.view }),
 					hand_size: opponent.hand.cards.count,
 				}
 			},
@@ -223,8 +224,9 @@ class Game < ActiveRecord::Base
 				name: player.name,
 				id: player.id,
 				deck_size: player.deck.cards.count,
-				discard_size: player.discard.cards.count,
-				discard_top: player.discard.top_card.view,
+				discard: {
+					size: player.discard.cards.count,
+				}.merge!(player.discard.is_empty ? {} : { top: player.discard.top_card.view }),
 				hand: player.hand.ordered_cards.collect{|hand_card|
 					hand_card.view
 				},
@@ -238,6 +240,9 @@ class Game < ActiveRecord::Base
 				buys: current_player.buys,
 				money: current_player.money
 			},
+			trash: {
+				size: trash.cards.count
+			}.merge!(trash.is_empty ? {} : { topcard: trash.top_card.view }),
 			phase: phase,
 			turn: turn
 		}
