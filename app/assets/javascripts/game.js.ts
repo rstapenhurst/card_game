@@ -29,6 +29,7 @@ class Card {
 }
 
 declare class FaceUpPile {
+  id: number;
   size: number;
   top: Card;
   name: string;
@@ -122,19 +123,22 @@ class CardGame {
       this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
       this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
 
-
       this.supplyWidgets.removeAll(true, true);
       var ypos = 0;
       this.state.supplies.forEach((x) => {
         var sprite = this.supplyWidgets.create(0, ypos, 'small_card_face_empty');
 
         if (x.top != null) {
-          var text = this.game.add.text(0, 0, x.top.template_name + "\n cost: " + x.top.cost , {font: "10px Arial"});
+          var text = this.game.add.text(0, 0, x.top.template_name + "(" + x.size + ")\n cost: " + x.top.cost , {font: "10px Arial"});
           text.x = 30;
           text.y = ypos + 20;
           this.supplyWidgets.add(text);
-        }
 
+          sprite.inputEnabled = true;
+          sprite.events.onInputDown.add(() => {
+            this.trigger('card_buy_event', {supply_id: x.id});
+          }, this);
+        }
 
         ypos = ypos + 68;
       });
