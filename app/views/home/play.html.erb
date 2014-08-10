@@ -16,7 +16,6 @@ $(function() {
 		channel.bind('card_played_event', function(data) {
 		  console.log('Card played');
 			console.log(data);
-			location.reload()
 			});
 		channel.bind('full_game_state', function(data) {
 			console.log('Game state reported');

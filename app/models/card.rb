@@ -14,7 +14,7 @@ class Card < ActiveRecord::Base
 		if attribute
 			return attribute.value
 		else
-			return nil
+			return super
 		end
 	end
 

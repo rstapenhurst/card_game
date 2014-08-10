@@ -26,22 +26,39 @@ class Game < ActiveRecord::Base
 
 	end
 
-	def play_card(player, card)
+	def play_card(player, card, events)
+
 		player.play_area.add_card(card)
+		events << {
+			player_log: "Removed #{card.name} from #{player.hand.name}",
+			opponent_log: "Set #{player.hand.name} to #{player.play_area.cards.count - 1} cards"
+		} << {
+			all_log: "Added #{card.name} to #{player.play_area.name}"
+		}
+
 		if card.is_action == 1
 			player.set_actions(player.actions - 1)
+			dirty_actions = true
 		end
 		card.card_attributes.each do |attr|
 			if (attr.key == "money")
 				player.set_money(player.money + attr.value)
+				dirty_money = true
 			elsif (attr.key == "actions")
 				player.set_actions(player.actions + attr.value)
+				dirty_actions = true
 			elsif (attr.key == "buys")
 				player.set_buys(player.buys + attr.value)
+				dirty_buys = true
 			elsif (attr.key == "cards")
-				player.draw(attr.value)
+				player.draw(attr.value, log)
 			end
 		end
+		events << dirty_money ? {
+			all_log: "Set player money to #{player.money}"
+		} : nil << dirty_actions ? {
+			all_log: "Set player actions to #{player.actions}"
+		} : nil
 		check_auto_advance
 	end
 
