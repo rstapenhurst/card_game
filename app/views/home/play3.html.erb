@@ -1,5 +1,9 @@
 ﻿<% content_for :head do %>
+		<script>
+			var player_id = <%= @u.id %>
+			var game_id = <%= @game.id %>
+		</script>
     <script src="/assets/phaser.js"></script>
-    <script src="/assets/game.js.js"></script>
+		<script src="/assets/game.js.js"></script>
 <% end %>
 

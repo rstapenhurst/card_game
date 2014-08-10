@@ -19,7 +19,10 @@ declare class GameState {
   phase: string;
   current_player: Player;
 
-}
+	}
+
+declare var game_id: number;
+declare var player_id: number;
 
 class Util {
     public static CardWidth: number = 128;
@@ -100,7 +103,7 @@ class CardGame {
     }
 
     trigger = (eventName, data) => {
-      this.dispatcher.trigger(eventName, JSON.stringify({game_id: 1, data: data }));
+      this.dispatcher.trigger(eventName, JSON.stringify({game_id: game_id, data: data }));
     }
 
     getTexture = (key: string) : Phaser.RenderTexture => {
@@ -119,15 +122,14 @@ class CardGame {
         this.myHand.addCard(new Card(0, true));
         this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
 
-
         var label = new Phaser.Text(this.game, 20, 10, "Advance", {font: "12px Arial", fill: "#ffff00"});
         var advanceButton = this.game.add.button(400, 0, 'button', () => { this.doAdvance(); });
-        advanceButton.addChild(label);
+				advanceButton.addChild(label);
 
         this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
-        this.channel = this.dispatcher.subscribe('game_updates');
-        this.channel.bind('full_game_state', (data) => {this.onFullGameState(data);});
+        this.channel = this.dispatcher.subscribe('game_updates_' + game_id);
+        this.channel.bind('full_game_state_' + player_id, (data) => {this.onFullGameState(data);});
 
         this.trigger('game_fetch_event', null);
     }
