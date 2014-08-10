@@ -31,6 +31,7 @@ class Card {
 declare class FaceUpPile {
   size: number;
   top: Card;
+  name: string;
 }
 
 declare class You {
@@ -51,6 +52,7 @@ declare class GameState {
   current_player: Player;
   player: You;
   play_area: Array<Card>;
+  supplies: Array<FaceUpPile>;
 }
 
 declare var game_id: number;
@@ -78,6 +80,7 @@ class CardGame {
 
     handWidgets: Phaser.Group;
     playAreaWidgets: Phaser.Group;
+    supplyWidgets: Phaser.Group;
 
     turnIndicator: Phaser.Text;
     currentPlayerStatus: Phaser.Text;
@@ -88,6 +91,7 @@ class CardGame {
 
     preload = () => {
         this.game.load.image('card_face_empty', Asset.image('card_face_empty.png'));
+        this.game.load.image('small_card_face_empty', Asset.image('small_card_face_empty.png'));
         this.game.load.image('button', Asset.image('button.png'));
     }
 
@@ -117,6 +121,25 @@ class CardGame {
       this.drawHandOrPlay(this.state.play_area, this.playAreaWidgets);
       this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
       this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
+
+
+      this.supplyWidgets.removeAll(true, true);
+      var ypos = 0;
+      this.state.supplies.forEach((x) => {
+        var sprite = this.supplyWidgets.create(0, ypos, 'small_card_face_empty');
+
+        if (x.top != null) {
+          var text = this.game.add.text(0, 0, x.top.template_name + "\n cost: " + x.top.cost , {font: "10px Arial"});
+          text.x = 30;
+          text.y = ypos + 20;
+          this.supplyWidgets.add(text);
+        }
+
+
+        ypos = ypos + 68;
+      });
+
+
     }
 
     trigger = (eventName, data) => {
@@ -152,6 +175,10 @@ class CardGame {
         this.playAreaWidgets = this.game.add.group();
         this.playAreaWidgets.x = 10;
         this.playAreaWidgets.y = this.game.height - 400;
+
+        this.supplyWidgets = this.game.add.group();
+        this.supplyWidgets.x = this.game.width - Util.CardPadded;
+        this.supplyWidgets.y = 10;
 
         this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
