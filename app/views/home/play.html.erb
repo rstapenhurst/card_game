@@ -15,7 +15,7 @@ $(function() {
 		}
 		channel.bind('card_played_event', function(data) {
 		  console.log('Card played');
-			console.log(data);
+			console.log(JSON.stringify(data));
 			});
 		channel.bind('full_game_state', function(data) {
 			console.log('Game state reported');
