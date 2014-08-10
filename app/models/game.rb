@@ -68,16 +68,23 @@ class Game < ActiveRecord::Base
 	end
 
 	def buy_card(player, supply, events)
-		events << {
-			test: "log value"
-		}
 		candidate_card = supply.card_pile.top_card
 		if player.money >= candidate_card.cost and player.buys >= 1
 			player.discard.add_card(candidate_card)
-			current_money = player.money - candidate_card.cost
-			player.set_money(current_money)
-			current_buys = player.buys - 1
-			player.set_buys(current_buys)
+			events << {
+				all_log: "Added #{candidate_card.name} on top of #{player.discard.name}"
+			}
+			events << {
+				all_log: "Set #{player.discard.name} to #{player.discard.cards.count} cards"
+			}
+			player.set_money(player.money - candidate_card.cost)
+			events << {
+				all_log: "Set player money to #{player.money}"
+			} if candidate_card.cost > 0
+			player.set_buys(player.buys - 1)
+			events << {
+				all_log: "Set player buys to #{player.buys}"
+			}
 
 			if supply.name == "Province" and supply.card_pile.is_empty
 				set_phase('finished', events)
@@ -201,8 +208,11 @@ class Game < ActiveRecord::Base
 	end
 
 	def is_legal(player, card)
-		puts "Legality. Phase: #{phase}, is_action: #{card.is_action}, is_treasure: #{card.is_treasure}"
 		if !is_players_turn(player)
+			return false
+		end
+
+		if player.hand.cards.where(id: card.id).count == 0
 			return false
 		end
 
