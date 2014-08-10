@@ -11,6 +11,32 @@ declare class WebSocketRails {
   trigger(eventName: string, eventData: string);
 }
 
+class Card {
+    id: number;
+    cost: number;
+    money: number;
+    victory_points: number;
+    actions: number;
+    buys: number;
+    cards: number;
+
+    template_name: string;
+
+    is_action: boolean;
+    is_treasure: boolean;
+    is_victory: boolean;
+}
+
+declare class FaceUpPile {
+  size: number;
+  top: Card;
+}
+
+declare class You {
+  deck_size: number;
+  hand: Array<Card>;
+}
+
 declare class Player {
   name: string;
 }
@@ -18,7 +44,6 @@ declare class Player {
 declare class GameState {
   phase: string;
   current_player: Player;
-
 }
 
 class Util {
@@ -26,44 +51,6 @@ class Util {
     public static CardPadded: number = 130;
     public static CardHeight: number = 196;
     public static Padding: number = 10;
-}
-
-class Card {
-    faceUp: boolean;
-
-    id: number;
-
-    constructor(id: number, faceUp: boolean) {
-        this.id = id;
-        this.faceUp = faceUp;
-    }
-
-    render = () => {
-    }
-}
-
-class CardPile {
-    type: string;
-    game: CardGame;
-    group: Phaser.Group;
-    size: number;
-
-    contents: Array<Card>;
-
-
-    constructor(game: CardGame, type: string, position: Phaser.Point) {
-        this.type = type;
-        this.game = game;
-        this.group = this.game.game.add.group();
-        this.group.position = position;
-        this.contents = new Array<Card>();
-    }
-
-    addCard(card: Card) {
-        this.contents.push(card);
-        this.group.create(0, 0, 'card_face_empty');
-    }
-
 }
 
 class Asset {
@@ -75,8 +62,6 @@ class Asset {
 class CardGame {
 
     game: Phaser.Game;
-    myHand: CardPile;
-    playArea: CardPile;
     dispatcher: WebSocketRails;
     channel: Channel;
     state: GameState;
@@ -85,6 +70,7 @@ class CardGame {
 
 
     constructor() {
+      console.log(x);
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
     }
 
@@ -114,9 +100,6 @@ class CardGame {
 
     create = () => {
         this.game.stage.backgroundColor = 0xefefef;
-        this.myHand = new CardPile(this, "hand", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.CardHeight - Util.Padding));
-        this.playArea = new CardPile(this, "play-area", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.Padding - Util.CardHeight - Util.Padding));
-        this.myHand.addCard(new Card(0, true));
         this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
 
 
