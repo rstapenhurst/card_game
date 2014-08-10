@@ -114,6 +114,10 @@ class CardGame {
         this.trigger('game_fetch_event', null);
     }
 
+    onGameUpdate = (data) => {
+      this.trigger('game_fetch_event', null);
+    }
+
     create = () => {
         this.game.stage.backgroundColor = 0xefefef;
         this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
@@ -130,6 +134,7 @@ class CardGame {
 
         this.channel = this.dispatcher.subscribe('game_updates_' + game_id);
         this.channel.bind('full_game_state_' + player_id, (data) => {this.onFullGameState(data);});
+        this.channel.bind('update_game_state_' + player_id, (data) => {this.onGameUpdate(data);});
 
         this.trigger('game_fetch_event', null);
     }
