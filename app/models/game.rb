@@ -54,11 +54,6 @@ class Game < ActiveRecord::Base
 				player.draw(attr.value, log)
 			end
 		end
-		events << dirty_money ? {
-			all_log: "Set player money to #{player.money}"
-		} : nil << dirty_actions ? {
-			all_log: "Set player actions to #{player.actions}"
-		} : nil
 		check_auto_advance
 	end
 
