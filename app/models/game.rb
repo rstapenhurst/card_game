@@ -31,11 +31,12 @@ class Game < ActiveRecord::Base
 		player.play_area.add_card(card)
 		events << {
 			player_log: "Removed #{card.name} from #{player.hand.name}",
-			opponent_log: "Set #{player.hand.name} to #{player.play_area.cards.count - 1} cards"
+			opponent_log: "Set #{player.hand.name} to #{player.hand.cards.count} cards"
 		} << {
 			all_log: "Added #{card.name} to #{player.play_area.name}"
 		}
 
+		dirty_actions = dirty_money = dirty_buys = false
 		if card.is_action == 1
 			player.set_actions(player.actions - 1)
 			dirty_actions = true
@@ -51,10 +52,19 @@ class Game < ActiveRecord::Base
 				player.set_buys(player.buys + attr.value)
 				dirty_buys = true
 			elsif (attr.key == "cards")
-				player.draw(attr.value, log)
+				player.draw(attr.value, events)
 			end
 		end
-		check_auto_advance
+		events << {
+			all_log: "Set player money to #{player.money}"
+		} if dirty_money
+	  events << {
+			all_log: "Set player actions to #{player.actions}"
+		} if dirty_actions
+		events << {
+			all_log: "Set player buys to #{player.buys}"
+		} if dirty_buys
+		check_auto_advance(events)
 	end
 
 	def buy_card(player, supply)
@@ -70,7 +80,7 @@ class Game < ActiveRecord::Base
 				self.phase = "Finished"
 				save
 			end
-			check_auto_advance
+			check_auto_advance([])
 		end
 	end
 
@@ -85,7 +95,7 @@ class Game < ActiveRecord::Base
 				player.deck.add_card(estate)
 			end
 			player.deck.shuffle
-			player.draw(5)
+			player.draw(5, [])
 		end
 	end
 
@@ -127,36 +137,47 @@ class Game < ActiveRecord::Base
 		return card
 	end
 
-	def advance_phase
+	def advance_phase(events)
 		if phase == 'init'
 			setup_decks
 			setup_supplies
-			self.phase = 'action'
+			set_phase('action', events)
 		elsif phase == 'action'
-			self.phase = 'treasure'
+			set_phase('treasure', events)
 		elsif phase == 'treasure'
-			self.phase = 'buy'
+			set_phase('buy', events)
 		elsif phase == 'buy'
-			self.phase = 'cleanup'
-			do_cleanup
+			set_phase('cleanup', events)
+			do_cleanup(events)
+		elsif phase == 'cleanup'
+			set_phase('action', events)
 		end
-		check_auto_advance
+		check_auto_advance(events)
 		save
 	end
 
-	def check_auto_advance
+	def set_phase(new_phase, events)
+		self.phase = new_phase
+		events << {
+			all_log: "Set phase to #{phase}"
+		}
+	end
+
+	def check_auto_advance(events)
 		if self.phase == 'action'
 			if current_player.actions == 0 or !current_player.hand.cards.joins(:card_attributes).where('card_attributes.key == "is_action" AND card_attributes.value == 1').exists?
-				advance_phase
+				advance_phase(events)
 			end
 		elsif self.phase == 'treasure'
 			if !current_player.hand.cards.joins(:card_attributes).where('card_attributes.key == "is_treasure" AND card_attributes.value == 1').exists?
-				advance_phase
+				advance_phase(events)
 			end
 		elsif self.phase == 'buy'
 			if current_player.buys == 0
-				advance_phase
+				advance_phase(events)
 			end
+		elsif self.phase == 'cleanup'
+			advance_phase(events)
 		end
 	end
 
@@ -196,21 +217,21 @@ class Game < ActiveRecord::Base
 		return true
 	end
 
-	def do_cleanup
+	def do_cleanup(events)
 		player = current_player
 		player.play_area.cards.each do |card|
 			player.discard.add_card(card)
 		end
+
 		player.hand.cards.each do |card|
 			player.discard.add_card(card)
 		end
-		player.draw(5)
+		player.draw(5, [])
 		player.set_money(0)
 		player.set_buys(1)
 		player.set_actions(1)
 
 		self.turn += 1
-		self.phase = 'action'
 	end
 
 	def view_for(player)

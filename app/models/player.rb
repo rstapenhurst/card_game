@@ -11,7 +11,7 @@ class Player < ActiveRecord::Base
 		return user.name
 	end
 
-	def draw(count)
+	def draw(count, events)
 		count.times() do
 			if deck.is_empty
 				if (discard.is_empty)
@@ -20,9 +20,21 @@ class Player < ActiveRecord::Base
 				discard.cards.each do |card|
 					deck.add_card(card)
 				end
+				events << {
+					all_log: "Set #{discard.name} to 0 cards"
+				} << {
+					all_log: "Set #{deck.name} to #{deck.cards.count} cards"
+				}
 				deck.shuffle
 			end
-			hand.add_card(deck.top_card)
+			card = deck.top_card
+			hand.add_card(card)
+			events << {
+				all_log: "Set #{deck.name} to #{deck.cards.count} cards"
+			} << {
+				player_log: "Added #{card.name} to #{hand.name}",
+				opponent_log: "Set #{hand.name} to #{hand.cards.count} cards"
+			}
 		end
 	end
 

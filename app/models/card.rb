@@ -23,7 +23,8 @@ class Card < ActiveRecord::Base
 				[att.key, att.value]
 			}.to_h.merge({
 				name: name,
-				id: id
+				id: id,
+				template_name: card_template.name
 			})
 	end
 end
