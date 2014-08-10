@@ -9,15 +9,15 @@
 var dispatcher;
 $(function() {
 		dispatcher = new WebSocketRails(location.host + "/websocket", true);
-		var channel = dispatcher.subscribe('game_updates');
+		var channel = dispatcher.subscribe('game_updates_<%=@game.id%>');
 		dispatcher.on_open = function(data) {
 		console.log("Connected to " + location.host);
 		}
-		channel.bind('update_game_state', function(data) {
+		channel.bind('update_game_state_<%=@u.id%>', function(data) {
 		  console.log('Game state updated:');
 			console.log(JSON.stringify(data));
 			});
-		channel.bind('full_game_state', function(data) {
+		channel.bind('full_game_state_<%=@u.id%>', function(data) {
 			console.log('Game state reported:');
 			console.log(JSON.stringify(data));
 			});

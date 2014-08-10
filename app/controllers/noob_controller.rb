@@ -13,7 +13,7 @@ class NoobController < WebsocketRails::BaseController
 		user = User.where(id: session[:user]).take
 		player = Player.where(game_id: @game.id, user_id: user.id).take
 
-		WebsocketRails[:game_updates].trigger(:full_game_state, @game.view_for(player));
+		WebsocketRails["game_updates_#{@game.id}"].trigger("full_game_state_#{player.id}", @game.view_for(player))
 	end
 
 	def play_card
@@ -30,7 +30,9 @@ class NoobController < WebsocketRails::BaseController
 			if @game.is_legal(player, card)
 				events = []
 				@game.play_card(player, card, events)
-				WebsocketRails[:game_updates].trigger(:update_game_state, events)
+				@game.players.each do |p|
+					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
+				end
 			else
 				render json: "Cannot play card", status: 400
 			end
@@ -74,7 +76,9 @@ class NoobController < WebsocketRails::BaseController
 				events = []
 				@game.advance_phase(events)
 				@game.save
-				WebsocketRails[:game_updates].trigger(:update_game_state, events)
+				@game.players.each do |p|
+					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
+				end
 			end
 
 		end
