@@ -70,8 +70,9 @@ class CardGame {
     channel: Channel;
     state: GameState;
 
-    turnIndicator: Phaser.Text;
+    handWidgets: Phaser.Group;
 
+    turnIndicator: Phaser.Text;
 
     constructor() {
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
@@ -83,8 +84,19 @@ class CardGame {
     }
 
     onFullGameState = (data) => {
-      console.log(data);
       this.state = data.game;
+      this.handWidgets.removeAll(true, true);
+      var xpos: number = 10;
+      this.state.player.hand.forEach((x) => {
+        var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
+        text.x = xpos + 30;
+        text.y = 20;
+        this.handWidgets.create(xpos, 0, 'card_face_empty');
+        this.handWidgets.add(text);
+
+        xpos = xpos + Util.CardPadded;
+      });
+
       this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
     }
 
@@ -108,6 +120,10 @@ class CardGame {
         var label = new Phaser.Text(this.game, 20, 10, "Advance", {font: "12px Arial", fill: "#ffff00"});
         var advanceButton = this.game.add.button(400, 0, 'button', () => { this.doAdvance(); });
 				advanceButton.addChild(label);
+
+        this.handWidgets = this.game.add.group();
+        this.handWidgets.x = 10;
+        this.handWidgets.y = this.game.height - 200;
 
         this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
