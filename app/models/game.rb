@@ -248,6 +248,7 @@ class Game < ActiveRecord::Base
 			},
 			current_player: {
 				id: current_player.id,
+				name: current_player.name,
 				actions: current_player.actions,
 				buys: current_player.buys,
 				money: current_player.money
