@@ -42,24 +42,25 @@ class NoobController < WebsocketRails::BaseController
 
 	def buy_card
 
-		begin
-			Game.transaction do
+		data = JSON.parse(message)
+    @game = Game.find(data['game_id'])
+		supply = Supply.find(data['data']['supply_id'])
 
-				user = User.where(id: session[:user]).take
-				player = Player.where(game_id: @game.id, user_id: user.id).take
-				supply = Supply.find(params.require(:supply_id))
+		Game.transaction do
 
-				if @game.is_players_turn(player) and @game.phase == 'buy'
-					@game.buy_card(player, supply)
+			user = User.where(id: session[:user]).take
+			player = Player.where(game_id: @game.id, user_id: user.id).take
+
+			if @game.is_players_turn(player) and @game.phase == 'buy'
+				events = []
+				@game.buy_card(player, supply, events)
+				@game.players.each do |p|
+					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
 				end
-
 			end
 
-			render json: {}, :status => 200
-		rescue Exception => e
-			render json: {error: e.message}, :status => 500
-			raise e
 		end
+
 	end
 
 	def advance_phase
