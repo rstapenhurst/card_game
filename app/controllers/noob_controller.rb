@@ -25,7 +25,7 @@ class NoobController < WebsocketRails::BaseController
 
 			user = User.where(id: session[:user]).take
 			player = Player.where(game_id: @game.id, user_id: user.id).take
-			card = Card.find(data['card_id'])
+			card = Card.find(data['data']['card_id'])
 
 			if @game.is_legal(player, card)
 				events = []
