@@ -14,7 +14,16 @@ class Card < ActiveRecord::Base
 		if attribute
 			return attribute.value
 		else
-			super
+			return nil
 		end
+	end
+
+	def view
+		return card_attributes.collect{|att|
+				[att.key, att.value]
+			}.to_h.merge({
+				name: name,
+				id: id
+			})
 	end
 end

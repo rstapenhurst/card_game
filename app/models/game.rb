@@ -200,4 +200,47 @@ class Game < ActiveRecord::Base
 		self.phase = 'action'
 	end
 
+	def view_for(player)
+		return :game => {
+			supplies: supplies.collect{|supply|
+				{
+					id: supply.id,
+					size: supply.cards.count,
+					top_card: supply.card_pile.top_card.view
+				}
+			},
+			opponents: players.select{|candidate| candidate != player}.collect{|opponent|
+				{
+					name: opponent.name,
+					id: opponent.id,
+					deck_size: opponent.deck.cards.count,
+					discard_size: opponent.discard.cards.count,
+					discard_top: opponent.discard.top_card.view,
+					hand_size: opponent.hand.cards.count,
+				}
+			},
+			player: {
+				name: player.name,
+				id: player.id,
+				deck_size: player.deck.cards.count,
+				discard_size: player.discard.cards.count,
+				discard_top: player.discard.top_card.view,
+				hand: player.hand.ordered_cards.collect{|hand_card|
+					hand_card.view
+				},
+			},
+			play_area: current_player.play_area.ordered_cards.collect{|played_card|
+				played_card.view
+			},
+			current_player: {
+				id: current_player.id,
+				actions: current_player.actions,
+				buys: current_player.buys,
+				money: current_player.money
+			},
+			phase: phase,
+			turn: turn
+		}
+	end
+
 end

@@ -1,4 +1,4 @@
 WebsocketRails::EventMap.describe do
-	subscribe :noob_event, to: NoobController, with_method: :noob_event
 	subscribe :card_play_event, to: NoobController, with_method: :play_card
+	subscribe :game_fetch_event, to: NoobController, with_method: :game_fetch
 end

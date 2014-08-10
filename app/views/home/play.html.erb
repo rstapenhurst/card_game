@@ -13,15 +13,14 @@ $(function() {
 		dispatcher.on_open = function(data) {
 		console.log("Connected to " + location.host);
 		}
-		dispatcher.trigger('noob_event', '');
-		channel.bind('noob_response', function(data) {
-			console.log("I am not a noob");
-			console.log(data);
-			});
 		channel.bind('card_played_event', function(data) {
 		  console.log('Card played');
 			console.log(data);
 			location.reload()
+			});
+		channel.bind('full_game_state', function(data) {
+			console.log('Game state reported');
+			console.log(JSON.stringify(data));
 			});
 });
 
@@ -45,6 +44,7 @@ $(function() {
 
 			});
 		});
+
 	</script>
 <% end %>
 

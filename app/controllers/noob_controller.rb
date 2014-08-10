@@ -4,20 +4,25 @@ class NoobController < WebsocketRails::BaseController
 		controller_store[:message_count] = 0
 	end
 
-	def noob_event
-		WebsocketRails[:game_updates].trigger(:noob_response, "a noobing game event with a card playing noob")
+	def game_fetch
+
+		puts "Game fetch called"
+		data = JSON.parse(message)
+    @game = Game.find(data['game_id'])
+
+		user = User.where(id: session[:user]).take
+		player = Player.where(game_id: @game.id, user_id: user.id).take
+
+		WebsocketRails[:game_updates].trigger(:full_game_state, @game.view_for(player));
+
+		render nothing: true
+
 	end
 
 	def play_card
 
-		puts "The request has arrived"
 		data = JSON.parse(message)
-		#set_game(data)
-		puts data['game_id']
     @game = Game.find(data['game_id'])
-
-		puts "Play card for game: "
-		puts @game.name
 
 		Game.transaction do
 

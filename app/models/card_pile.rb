@@ -22,7 +22,6 @@ class CardPile < ActiveRecord::Base
 	def shuffle
 		index = 0
 		piles.shuffle.each do |pile|
-			puts "WTF?"
 			pile.card_order = index
 			pile.save
 			index += 1
@@ -36,5 +35,18 @@ class CardPile < ActiveRecord::Base
 
 	def is_empty
 		return !Pile.exists?(card_pile_id: id)
+	end
+
+	def ordered_cards
+		return piles.collect{|pile|
+			{
+				card_order: pile.card_order,
+				card: pile.card
+			}
+		}.sort!{|a,b|
+			a[:card_order] <=> b[:card_order]
+		}.collect{|sorted_card|
+			sorted_card[:card]
+		}
 	end
 end
