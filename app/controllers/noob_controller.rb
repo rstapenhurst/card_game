@@ -31,8 +31,9 @@ class NoobController < WebsocketRails::BaseController
 			card = Card.find(data['card_id'])
 
 			if @game.is_legal(player, card)
-				@game.play_card(player, card)
-				WebsocketRails[:game_updates].trigger(:card_played_event, "Played #{card.name}")
+				events = []
+				@game.play_card(player, card, events)
+				WebsocketRails[:game_updates].trigger(:card_played_event, events)
 			else
 				render json: "Cannot play card", status: 400
 			end
@@ -65,6 +66,9 @@ class NoobController < WebsocketRails::BaseController
 	end
 
 	def advance_phase
+
+		data = JSON.parse(message)
+    @game = Game.find(data['game_id'])
 
 		Game.transaction do
 
