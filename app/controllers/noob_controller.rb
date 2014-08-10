@@ -4,6 +4,30 @@ class NoobController < WebsocketRails::BaseController
 		controller_store[:message_count] = 0
 	end
 
+	def filter_log(events, is_current_player)
+		output = []
+		events.each do |event|
+			output_event = {}
+			if is_current_player
+				output_event.merge!({
+					player_log: event[:player_log]
+				}) if event[:player_log]
+			end
+			output_event.merge!({
+				all_log: event[:all_log]
+			}) if event[:all_log]
+			output << output_event if (output_event != {})
+		end
+		return output
+	end
+
+	def broadcast_log(game, player, events)
+		@game.players.each do |p|
+			WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}",
+																												 filter_log(events, player.id == p.id))
+		end
+	end
+
 	def game_fetch
 
 		puts "Game fetch called"
@@ -30,9 +54,7 @@ class NoobController < WebsocketRails::BaseController
 			if @game.is_legal(player, card)
 				events = []
 				@game.play_card(player, card, events)
-				@game.players.each do |p|
-					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
-				end
+				broadcast_log(@game, player, events)
 			else
 				render json: "Cannot play card", status: 400
 			end
@@ -54,9 +76,7 @@ class NoobController < WebsocketRails::BaseController
 			if @game.is_players_turn(player) and @game.phase == 'buy'
 				events = []
 				@game.buy_card(player, supply, events)
-				@game.players.each do |p|
-					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
-				end
+				broadcast_log(@game, player, events)
 			end
 
 		end
@@ -77,9 +97,7 @@ class NoobController < WebsocketRails::BaseController
 				events = []
 				@game.advance_phase(events)
 				@game.save
-				@game.players.each do |p|
-					WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}", events)
-				end
+				broadcast_log(@game, player, events)
 			end
 
 		end
