@@ -13,12 +13,12 @@ $(function() {
 		dispatcher.on_open = function(data) {
 		console.log("Connected to " + location.host);
 		}
-		channel.bind('card_played_event', function(data) {
-		  console.log('Card played');
+		channel.bind('update_game_state', function(data) {
+		  console.log('Game state updated:');
 			console.log(JSON.stringify(data));
 			});
 		channel.bind('full_game_state', function(data) {
-			console.log('Game state reported');
+			console.log('Game state reported:');
 			console.log(JSON.stringify(data));
 			});
 });
@@ -27,6 +27,10 @@ $(function() {
 
 			$(".play-card-button").click(function() {
 				dispatcher.trigger('card_play_event', '{"card_id":"' + this.getAttribute("href") + '","game_id":"<%=@game.id%>"}');
+				});
+
+			$("#advance-phase-button").click(function() {
+				dispatcher.trigger('phase_advance_event', '{"game_id":"<%=@game.id%>"}');
 			});
 
 		$(".supply").click(function() {
@@ -80,9 +84,7 @@ $(function() {
 				<span><%= @game.phase %></span>
 			</span>
 			<span class="info-item">
-				<%= form_tag("/games/" + @game.id.to_s + "/advance_phase") do%>
-					<button class="pure-button pure-button-primary">ADVANCE</button>
-			<% end %>
+				<button id="advance-phase-button" class="pure-button pure-button-primary">ADVANCE</button>
 			</span>
 		</div>
 
