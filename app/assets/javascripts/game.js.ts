@@ -74,7 +74,6 @@ class CardGame {
 
 
     constructor() {
-      console.log(x);
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
     }
 
