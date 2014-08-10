@@ -1,6 +1,21 @@
 ﻿
 /// <reference path="phaser.d.ts" />
 
+declare class Channel {
+  bind(eventName: string, callback: Function);
+}
+
+declare class WebSocketRails {
+  constructor(url: string, useWebSockets: boolean);
+  subscribe(channel: string) : Channel;
+  trigger(eventName: string, eventData: string);
+}
+
+declare class GameState {
+  phase: string;
+
+}
+
 class Util {
     public static CardWidth: number = 128;
     public static CardPadded: number = 130;
@@ -17,6 +32,9 @@ class Card {
         this.id = id;
         this.faceUp = faceUp;
     }
+
+    render = () => {
+    }
 }
 
 class CardPile {
@@ -24,7 +42,7 @@ class CardPile {
     game: CardGame;
     group: Phaser.Group;
 
-    contents: Array<Card>;asdas
+    contents: Array<Card>;
 
     sprites: Map<number, Phaser.Sprite>;
 
@@ -55,21 +73,54 @@ class CardGame {
     game: Phaser.Game;
     myHand: CardPile;
     playArea: CardPile;
+    dispatcher: WebSocketRails;
+    channel: Channel;
+    state: GameState;
+
+    phaseIndicator: Phaser.Text;
+
+    textures: Map<string, Phaser.RenderTexture>
 
     constructor() {
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
-
+        this.textures = new Map<string, Phaser.RenderTexture>();
     }
 
-    preload() {
+    preload = () => {
         this.game.load.image('card_face_empty', Asset.image('card_face_empty.png'));
     }
 
-    create() {
+    onFullGameState = (data) => {
+      console.log(data);
+      this.state = data.game;
+      this.phaseIndicator.setText("Phase: " + this.state.phase);
+    }
+
+    trigger = (eventName, data) => {
+      this.dispatcher.trigger(eventName, JSON.stringify({game_id: 1, data: data }));
+    }
+
+    getTexture = (key: string) : Phaser.RenderTexture => {
+      var tex = textures.get(string);
+      if (tex != null)
+        return tex;
+    }
+
+    create = () => {
         this.game.stage.backgroundColor = 0xefefef;
         this.myHand = new CardPile(this, "hand", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.CardHeight - Util.Padding));
         this.playArea = new CardPile(this, "play-area", new Phaser.Point(Util.Padding + Util.CardWidth + Util.Padding, this.game.height - Util.Padding - Util.CardHeight - Util.Padding));
         this.myHand.addCard(new Card(0, true));
+        this.phaseIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
+
+        this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
+
+        this.channel = this.dispatcher.subscribe('game_updates');
+        this.channel.bind('full_game_state', (data) => {this.onFullGameState(data);});
+
+        this.trigger('game_fetch_event', null);
+        this.trigger('phase_advance_event', null);
+        this.trigger('game_fetch_event', null);
 
     }
 

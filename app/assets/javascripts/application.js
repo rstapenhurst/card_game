@@ -16,6 +16,7 @@
 //= require_tree .
 //= require websocket_rails/main
 //= stub game.js
+//= stub game.js.ts
 //= stub phaser.min.js
 //= stub phaser.js
 //= stub phaser.d.js

@@ -14,9 +14,6 @@ class NoobController < WebsocketRails::BaseController
 		player = Player.where(game_id: @game.id, user_id: user.id).take
 
 		WebsocketRails[:game_updates].trigger(:full_game_state, @game.view_for(player));
-
-		render nothing: true
-
 	end
 
 	def play_card
@@ -39,8 +36,6 @@ class NoobController < WebsocketRails::BaseController
 			end
 
 		end
-
-		render nothing: true
 	end
 
 	def buy_card
@@ -81,9 +76,6 @@ class NoobController < WebsocketRails::BaseController
 			end
 
 		end
-
-		redirect_to :back
-
 	end
 
   private
