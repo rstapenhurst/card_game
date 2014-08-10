@@ -50,7 +50,6 @@ class CardPile {
 
     contents: Array<Card>;
 
-    sprites: Map<number, Phaser.Sprite>;
 
     constructor(game: CardGame, type: string, position: Phaser.Point) {
         this.type = type;
@@ -58,7 +57,6 @@ class CardPile {
         this.group = this.game.game.add.group();
         this.group.position = position;
         this.contents = new Array<Card>();
-        this.sprites = new Map<number, Phaser.Sprite>();
     }
 
     addCard(card: Card) {
@@ -85,11 +83,9 @@ class CardGame {
 
     turnIndicator: Phaser.Text;
 
-    textures: Map<string, Phaser.RenderTexture>
 
     constructor() {
         this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
-        this.textures = new Map<string, Phaser.RenderTexture>();
     }
 
     preload = () => {
@@ -108,9 +104,7 @@ class CardGame {
     }
 
     getTexture = (key: string) : Phaser.RenderTexture => {
-      var tex = this.textures.get(key);
-      if (tex != null)
-        return tex;
+      return null;
     }
 
     doAdvance = () => {
