@@ -1,5 +1,6 @@
 ﻿
 /// <reference path="phaser.d.ts" />
+/// <reference path="jquery.d.ts" />
 
 declare class Channel {
   bind(eventName: string, callback: Function);
@@ -87,7 +88,7 @@ class CardGame {
   currentPlayerStatus: Phaser.Text;
 
   constructor() {
-    this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'content', { preload: this.preload, create: this.create });
+    this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create });
   }
 
   preload = () => {
@@ -100,9 +101,10 @@ class CardGame {
     group.removeAll(true, true);
     var xpos: number = 10;
     cards.forEach((x) => {
-      var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
-      text.x = xpos + 30;
-      text.y = 20;
+      var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
+      text.x = xpos + 20;
+      text.y = 64;
+      text.angle = -90;
 
       var sprite = group.create(xpos, 0, 'card_face_empty');
       sprite.inputEnabled = true;
@@ -111,15 +113,57 @@ class CardGame {
       }, this);
       group.add(text);
 
-      xpos = xpos + Util.CardPadded;
+      xpos = xpos + 40;
     });
 
   }
 
   drawHand = (cards: Array<Card>, group: Phaser.Group) => {
     group.removeAll(true, true);
-    var xpos: number = 10;
-    cards.forEach((x) => {
+    var sorted = cards.sort((a,b) => {
+
+      if (a.template_name == b.template_name)
+        return 0;
+
+      if (a.is_treasure) {
+        if (b.is_treasure) {
+          if (a.money == b.money) {
+            return a.template_name.localeCompare(b.template_name)
+          } else {
+            return b.money - a.money;
+          }
+        } else if (b.is_action) {
+          //In action phase, actions come before treasure
+          return this.state.phase == "action" ? 1 : -1;
+        } else {
+          return -1;
+        }
+      } else if (a.is_action) {
+        if (b.is_action) {
+          return a.template_name.localeCompare(b.template_name);
+        } else if (b.is_treasure) {
+          return (this.state.phase == "treasure" || this.state.phase == "buy") ? 1 : -1;
+        } else {
+          return -1;
+        }
+      } else {
+        if (b.is_action || b.is_treasure)
+          return 1;
+        else
+          return a.template_name.localeCompare(b.template_name);
+      }
+    });
+
+    var xpos: number = 0;
+    var last = null;
+    sorted.forEach((x) => {
+
+      if (last == null || x.template_name == last.template_name) {
+        xpos += 10
+      } else {
+        xpos += (10 + Util.CardPadded);
+      }
+
       var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
       text.x = xpos + 30;
       text.y = 20;
@@ -131,7 +175,8 @@ class CardGame {
       }, this);
       group.add(text);
 
-      xpos = xpos + Util.CardPadded;
+      last = x;
+
     });
 
   }
@@ -181,6 +226,9 @@ class CardGame {
 
   onGameUpdate = (data) => {
     this.trigger('game_fetch_event', null);
+    data.forEach((logEvent) => {
+      $("#game-log").prepend("<li>" + logEvent.all_log + "</li>");
+    });
   }
 
   create = () => {

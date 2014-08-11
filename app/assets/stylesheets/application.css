@@ -10,6 +10,7 @@
  * defined in the other CSS/SCSS files in this directory. It is generally better to create a new
  * file per style scope.
  *
+ *= require jquery-ui
  *= require_tree .
  *= require_self
  */
@@ -59,3 +60,33 @@ button.play-card-button {
 div.spacer {
 	height:20px;
 }
+
+#chat-history { 
+    background: transparent; 
+    border: none; 
+} 
+#chat-history .ui-widget-header { 
+    background: transparent; 
+    border: none; 
+    border-bottom: 1px solid #c0c0c0; 
+    -moz-border-radius: 0px; 
+    -webkit-border-radius: 0px; 
+    border-radius: 0px; 
+} 
+#chat-history .ui-tabs-nav .ui-state-default { 
+    background: transparent; 
+    border: none; 
+} 
+#chat-history .ui-tabs-nav .ui-state-active { 
+    background: transparent url(/assets/uiTabsArrow.png) no-repeat bottom center; 
+    border: none; 
+} 
+#chat-history .ui-tabs-nav .ui-state-default a { 
+    color: #c0c0c0; 
+} 
+#chat-history .ui-tabs-nav .ui-state-active a { 
+    color: #459e00; 
+}
+
+
+

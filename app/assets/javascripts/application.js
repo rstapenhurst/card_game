@@ -14,10 +14,12 @@
 //= require jquery_ujs
 //= require turbolinks
 //= require_tree .
+//= require jquery-ui/tabs
 //= require websocket_rails/main
 //= stub game.js
 //= stub game.js.ts
 //= stub phaser.min.js
 //= stub phaser.js
 //= stub phaser.d.js
+//= stub jquery.d.js
 
