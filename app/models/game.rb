@@ -147,7 +147,9 @@ class Game < ActiveRecord::Base
 		if phase == 'init'
 			setup_decks
 			setup_supplies
-			event_index = 0
+			self.event_index = 0
+      self.save
+
 			set_phase('action', events)
 		elsif phase == 'action'
 			set_phase('treasure', events)

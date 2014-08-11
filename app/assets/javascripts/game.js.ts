@@ -96,7 +96,27 @@ class CardGame {
     this.game.load.image('button', Asset.image('button.png'));
   }
 
-  drawHandOrPlay = (cards: Array<Card>, group: Phaser.Group) => {
+  drawPlayArea = (cards: Array<Card>, group: Phaser.Group) => {
+    group.removeAll(true, true);
+    var xpos: number = 10;
+    cards.forEach((x) => {
+      var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
+      text.x = xpos + 30;
+      text.y = 20;
+
+      var sprite = group.create(xpos, 0, 'card_face_empty');
+      sprite.inputEnabled = true;
+      sprite.events.onInputDown.add(() => {
+        this.trigger('card_play_event', {card_id: x.id});
+      }, this);
+      group.add(text);
+
+      xpos = xpos + Util.CardPadded;
+    });
+
+  }
+
+  drawHand = (cards: Array<Card>, group: Phaser.Group) => {
     group.removeAll(true, true);
     var xpos: number = 10;
     cards.forEach((x) => {
@@ -118,8 +138,8 @@ class CardGame {
 
   onFullGameState = (data) => {
     this.state = data.game;
-    this.drawHandOrPlay(this.state.player.hand, this.handWidgets);
-    this.drawHandOrPlay(this.state.play_area, this.playAreaWidgets);
+    this.drawHand(this.state.player.hand, this.handWidgets);
+    this.drawPlayArea(this.state.play_area, this.playAreaWidgets);
     this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
     this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
 
