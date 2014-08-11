@@ -6,7 +6,9 @@ class NoobController < WebsocketRails::BaseController
 
 	def filter_log(events, is_current_player)
 		output = []
+		index = @game.event_index
 		events.each do |event|
+			index += 1
 			output_event = {}
 			if is_current_player
 				output_event.merge!({
@@ -16,7 +18,10 @@ class NoobController < WebsocketRails::BaseController
 			output_event.merge!({
 				all_log: event[:all_log]
 			}) if event[:all_log]
-			output << output_event if (output_event != {})
+			output_event.merge!({
+				event_index: index
+			})
+			output << output_event
 		end
 		return output
 	end
@@ -26,6 +31,8 @@ class NoobController < WebsocketRails::BaseController
 			WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}",
 																												 filter_log(events, player.id == p.id))
 		end
+		@game.event_index += events.size
+		@game.save
 	end
 
 	def game_fetch

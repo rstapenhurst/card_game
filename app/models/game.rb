@@ -147,6 +147,7 @@ class Game < ActiveRecord::Base
 		if phase == 'init'
 			setup_decks
 			setup_supplies
+			event_index = 0
 			set_phase('action', events)
 		elsif phase == 'action'
 			set_phase('treasure', events)
@@ -200,7 +201,6 @@ class Game < ActiveRecord::Base
 				end
 			end
 		end
-		puts "Victory? Empty piles: #{empty_pile_count}, provs: #{provinces_empty}"
 		if empty_pile_count >= 3 or provinces_empty
 			set_phase('finished', events)
 			players.each do |player|
