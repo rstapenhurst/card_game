@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  resources :users
+
   resources :player_attributes
 
   resources :supplies
@@ -17,8 +19,6 @@ Rails.application.routes.draw do
 
   resources :players
 
-  resources :users
-
   resources :cards
 
   resources :card_attributes
@@ -26,8 +26,8 @@ Rails.application.routes.draw do
   resources :card_templates
 
 	get '' => 'home#main'
-	post '/login' => 'home#login'
-	post '/logout' => 'home#logout'
+	post '/login' => 'user_sessions#create'
+	post '/logout' => 'user_sessions#destroy'
 	get '/play/:id' => 'home#play'
 	get '/play2/:id' => 'home#play2'
 
@@ -35,7 +35,7 @@ Rails.application.routes.draw do
   # See how all your routes lay out with "rake routes".
 
   # You can have the root of your site routed with "root"
-  # root 'welcome#index'
+  root 'home#main'
 
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'

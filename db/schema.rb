@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140811031027) do
+ActiveRecord::Schema.define(version: 20140812175722) do
 
   create_table "card_attributes", force: true do |t|
     t.integer  "card_template_id"
@@ -103,9 +103,13 @@ ActiveRecord::Schema.define(version: 20140811031027) do
   add_index "supplies", ["game_id"], name: "index_supplies_on_game_id"
 
   create_table "users", force: true do |t|
-    t.string   "name"
+    t.string   "name",             null: false
+    t.string   "crypted_password", null: false
+    t.string   "salt",             null: false
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "users", ["name"], name: "index_users_on_name", unique: true
 
 end

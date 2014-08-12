@@ -41,9 +41,9 @@ button#logout {
 		<% end %>
 		<div></div>
 		<div class="footer">
-			<% unless session[:user].nil? %>
+			<% if current_user %>
 					<%= form_tag('/logout') do %>
-				<span>Logged in as: </span><span><em><%= User.find(session[:user]).name %></em></span>
+				<span>Logged in as: </span><span><em><%= current_user.name %></em></span>
 				<span>
 					<button class="pure-button">logout</button>
 				</span>

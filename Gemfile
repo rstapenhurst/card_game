@@ -44,3 +44,4 @@ gem 'typescript-rails'
 
 gem 'quiet_assets', group: :development
 gem 'jquery-ui-rails'
+gem 'sorcery'

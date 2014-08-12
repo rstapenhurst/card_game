@@ -87,7 +87,7 @@ class GamesController < ApplicationController
 
 		Game.transaction do
 
-			user = User.where(id: session[:user]).take
+			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 			card = Card.find(params.require(:card_id))
 
@@ -107,7 +107,7 @@ class GamesController < ApplicationController
 		begin
 			Game.transaction do
 
-				user = User.where(id: session[:user]).take
+				user = current_user
 				player = Player.where(game_id: @game.id, user_id: user.id).take
 				supply = Supply.find(params.require(:supply_id))
 
@@ -128,7 +128,7 @@ class GamesController < ApplicationController
 
 		Game.transaction do
 
-			user = User.where(id: session[:user]).take
+			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 
 			if @game.is_players_turn(player)

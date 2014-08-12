@@ -1,37 +1,25 @@
 class HomeController < ApplicationController
+  skip_before_filter :require_login, only: [:main]
+
 	def main 
-		if session[:user].nil?
+		if current_user.nil?
 			render :login_page
 		else
-			@user = User.where(id: session[:user]).take
+			@user = current_user
 			render :index
 		end
 	end
 
-	def login
-		@user = User.where(name: params.require(:username)).take
-		if @user.nil?
-			redirect_to action: main, :status => 500 and return
-		end
-		session[:user] = @user.id
-		redirect_to action: :main
-	end
-
-	def logout
-		session[:user] = nil
-		redirect_to action: :main
-	end
-
 	def play
 		@game = Game.find(params[:id])
-		@user = User.where(id: session[:user]).take
+    @user  = current_user
 		@u = Player.where(game_id: @game.id, user_id: @user.id).take
 		render :play
 	end
 
 	def play2
 		@game = Game.find(params[:id])
-		@user = User.where(id: session[:user]).take
+		@user = current_user
 		@u = Player.where(game_id: @game.id, user_id: @user.id).take
 		@dont_spacer = 1
 		render :play3

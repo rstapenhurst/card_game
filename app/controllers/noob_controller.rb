@@ -45,7 +45,7 @@ class NoobController < WebsocketRails::BaseController
 		data = JSON.parse(message)
     @game = Game.find(data['game_id'])
 
-		user = User.where(id: session[:user]).take
+		user = current_user
 		player = Player.where(game_id: @game.id, user_id: user.id).take
 
 		WebsocketRails["game_updates_#{@game.id}"].trigger("full_game_state_#{player.id}", @game.view_for(player))
@@ -58,7 +58,7 @@ class NoobController < WebsocketRails::BaseController
 
 		Game.transaction do
 
-			user = User.where(id: session[:user]).take
+			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 			card = Card.find(data['data']['card_id'])
 
@@ -81,7 +81,7 @@ class NoobController < WebsocketRails::BaseController
 
 		Game.transaction do
 
-			user = User.where(id: session[:user]).take
+			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 
 			if @game.is_players_turn(player) and @game.phase == 'buy'
@@ -99,7 +99,7 @@ class NoobController < WebsocketRails::BaseController
       @game = Game.find(data['game_id'])
 
       WebsocketRails["game_updates_#{@game.id}"].trigger("game_chat_event", {
-        from: User.find(session[:user]).name,
+        from: current_user.name,
         message: data['data']['message']
       })
     end
@@ -112,7 +112,7 @@ class NoobController < WebsocketRails::BaseController
 
 		Game.transaction do
 
-			user = User.where(id: session[:user]).take
+			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 
 			if @game.is_players_turn(player)
