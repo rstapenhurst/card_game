@@ -335,7 +335,8 @@ class Game < ActiveRecord::Base
 				size: trash.cards.count
 			}.merge!(trash.is_empty ? {} : { topcard: trash.top_card.view }),
 			phase: phase,
-			turn: turn
+			turn: turn,
+			event_index: event_index
 		}
 	end
 

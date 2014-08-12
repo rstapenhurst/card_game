@@ -226,8 +226,12 @@ class CardGame {
 
   onGameUpdate = (data) => {
     this.trigger('game_fetch_event', null);
-    data.forEach((logEvent) => {
-      $("#game-log").prepend("<li>" + logEvent.all_log + "</li>");
+		data.forEach((logEvent) => {
+			if (logEvent.player_log != null) {
+				$("#game-log").prepend("<li>[" + logEvent.event_index + "] " + logEvent.player_log + "</li>");
+			} else {
+				$("#game-log").prepend("<li>[" + logEvent.event_index + "] " + logEvent.all_log + "</li>");
+			}
     });
   }
 

@@ -14,6 +14,10 @@ class NoobController < WebsocketRails::BaseController
 				output_event.merge!({
 					player_log: event[:player_log]
 				}) if event[:player_log]
+			else
+				output_event.merge!({
+					player_log: event[:opponent_log]
+				}) if event[:opponent_log]
 			end
 			output_event.merge!({
 				all_log: event[:all_log]
