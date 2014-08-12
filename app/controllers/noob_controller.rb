@@ -97,10 +97,10 @@ class NoobController < WebsocketRails::BaseController
     def chat
       data = JSON.parse(message)
       @game = Game.find(data['game_id'])
-      WebSocketRails["game_updates_#{@game.id}"].trigger('game_chat_event', 
-                                                         {
-        from: 'someone',
-        message: data.message
+
+      WebsocketRails["game_updates_#{@game.id}"].trigger("game_chat_event", {
+        from: User.find(session[:user]).name,
+        message: data['data']['message']
       })
     end
       

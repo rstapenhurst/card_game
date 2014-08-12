@@ -219,11 +219,20 @@ class CardGame {
     return null;
   }
 
+  doChat = (message) => {
+	if (message.length > 0) {
+		this.trigger('chat_event', {message: message});
+	}
+  }
+
   doAdvance = () => {
     this.trigger('phase_advance_event', null);
     this.trigger('game_fetch_event', null);
   }
 
+  onChat = (data) => {
+  $("#chat-tab-all-chat").prepend('<div><span class="chat-sender">' + data.from + '</span><span> ' + data.message + '</span></div>');
+  }
   onGameUpdate = (data) => {
     this.trigger('game_fetch_event', null);
 		data.forEach((logEvent) => {
@@ -261,13 +270,23 @@ class CardGame {
     this.channel = this.dispatcher.subscribe('game_updates_' + game_id);
     this.channel.bind('full_game_state_' + player_id, (data) => {this.onFullGameState(data);});
     this.channel.bind('update_game_state_' + player_id, (data) => {this.onGameUpdate(data);});
+    this.channel.bind('game_chat_event', (data) => {this.onChat(data);});
 
     this.trigger('game_fetch_event', null);
   }
 
 }
 
+var game;
+
 window.onload = () => {
-  var game = new CardGame();
+  game = new CardGame();
+  $("#chat-text-input").bind('keypress', function(ev) {
+	if (ev.which == 13) {
+		ev.preventDefault();
+		game.doChat($(this).val().trim());
+		$(this).val("");
+	}
+  });
 }
 

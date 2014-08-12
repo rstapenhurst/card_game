@@ -2,14 +2,8 @@
 		<script>
 			var player_id = <%= @u.id %>
 			var game_id = <%= @game.id %>
-    $(function() {
-      $("#chat-text-input").bind('keypress', function(ev) {
-        if (ev.which == 13) {
-          ev.preventDefault();
-          $(this).val("");
-        }
-      });
 
+          $(function() {
       $("#chat-history").tabs();
     });
 		</script>
@@ -33,6 +27,15 @@
   }
   div#play-area {
   }
+}
+
+span.chat-sender {
+  font-weight: bold;
+}
+
+div#chat-tab-all-chat {
+  height: 750px;
+  overflow: auto;
 }
 
 div#chat-tab-game-log {
@@ -69,7 +72,6 @@ input#chat-text-input {
       </ul>
     </div>
     <div id="chat-tab-all-chat">
-      <p>Chat here</p>
     </div>
   </div>
   <div id="chat-input">
