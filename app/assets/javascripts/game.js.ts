@@ -39,6 +39,7 @@ declare class FaceUpPile {
 declare class You {
   deck_size: number;
   hand: Array<Card>;
+  discard: FaceUpPile;
 }
 
 declare class Player {
@@ -83,6 +84,8 @@ class CardGame {
   handWidgets: Phaser.Group;
   playAreaWidgets: Phaser.Group;
   supplyWidgets: Phaser.Group;
+  discardWidgets: Phaser.Group;
+  deckWidgets: Phaser.Group;
 
   turnIndicator: Phaser.Text;
   currentPlayerStatus: Phaser.Text;
@@ -116,6 +119,40 @@ class CardGame {
       xpos = xpos + 40;
     });
 
+  }
+
+  drawDeck = () => { 
+    this.deckWidgets.removeAll();
+    var deckGraphic = this.deckWidgets.create(0, 0, 'card_face_empty');
+    deckGraphic.tint = 0x666666;
+
+    var text = this.game.add.text(0, 0, "" + this.state.player.deck_size, {font: "10px Arial"});
+    text.x = 30;
+    text.y = 20;
+
+    this.deckWidgets.add(text);
+  }
+
+  drawDiscard = () => {
+    this.discardWidgets.removeAll();
+
+    if (this.state.player.discard.top != null) {
+      this.discardWidgets.create(0, 0, 'card_face_empty');
+
+      var text = this.game.add.text(0, 0, 
+        "DISCARD (" + this.state.player.discard.size + ")", {font: "10px Arial"});
+      text.x = 30;
+      text.y = 20;
+
+      this.discardWidgets.add(text);
+
+      var text = this.game.add.text(0, 0, 
+        "" + this.state.player.discard.top.template_name, {font: "10px Arial"});
+      text.x = 30;
+      text.y = 40;
+
+      this.discardWidgets.add(text);
+    }
   }
 
   drawHand = (cards: Array<Card>, group: Phaser.Group) => {
@@ -187,6 +224,9 @@ class CardGame {
     this.drawPlayArea(this.state.play_area, this.playAreaWidgets);
     this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
     this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
+
+    this.drawDiscard();
+    this.drawDeck();
 
     this.supplyWidgets.removeAll(true, true);
     var ypos = 0;
@@ -260,6 +300,14 @@ class CardGame {
     this.playAreaWidgets = this.game.add.group();
     this.playAreaWidgets.x = 10;
     this.playAreaWidgets.y = this.game.height - 400;
+
+    this.discardWidgets = this.game.add.group();
+    this.discardWidgets.x = this.game.width - (Util.CardPadded * 2);
+    this.discardWidgets.y = this.game.height - (Util.CardHeight * 2);
+
+    this.deckWidgets = this.game.add.group();
+    this.deckWidgets.x = this.game.width - (Util.CardPadded * 3);
+    this.deckWidgets.y = this.game.height - (Util.CardHeight * 2);
 
     this.supplyWidgets = this.game.add.group();
     this.supplyWidgets.x = this.game.width - Util.CardPadded;
