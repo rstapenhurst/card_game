@@ -2,6 +2,7 @@ class Game < ActiveRecord::Base
 	has_many :players, dependent: :destroy
 	has_many :supplies, dependent: :destroy
 	has_many :cards, dependent: :destroy
+	has_many :events, dependent: :destroy
 	belongs_to :trash, class_name:"CardPile", dependent: :destroy
 
 	def create_player_for_user(user_id)

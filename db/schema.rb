@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140812175722) do
+ActiveRecord::Schema.define(version: 20140813032915) do
 
   create_table "card_attributes", force: true do |t|
     t.integer  "card_template_id"
@@ -44,6 +44,14 @@ ActiveRecord::Schema.define(version: 20140812175722) do
   end
 
   add_index "cards", ["card_template_id"], name: "index_cards_on_card_template_id"
+
+  create_table "events", force: true do |t|
+    t.integer  "game_id"
+    t.integer  "event_index"
+    t.text     "event"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
 
   create_table "games", force: true do |t|
     t.string   "name"
