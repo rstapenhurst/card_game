@@ -9,22 +9,8 @@ class NoobController < WebsocketRails::BaseController
 		index = @game.event_index
 		events.each do |event|
 			index += 1
-			output_event = {}
-			if is_current_player
-				output_event.merge!({
-					player_log: event[:player_log]
-				}) if event[:player_log]
-			else
-				output_event.merge!({
-					player_log: event[:opponent_log]
-				}) if event[:opponent_log]
-			end
-			output_event.merge!({
-				all_log: event[:all_log]
-			}) if event[:all_log]
-			output_event.merge!({
-				event_index: index
-			})
+			output_event = event.slice(:type, :all_log, is_current_player ? :player_log : :opponent_log)
+      output_event[:event_index] = index
 			output << output_event
 		end
 		return output
@@ -71,10 +57,7 @@ class NoobController < WebsocketRails::BaseController
 				events = []
 				@game.play_card(player, card, events)
 				broadcast_log(@game, player, events)
-			else
-				render json: "Cannot play card", status: 400
 			end
-
 		end
 	end
 

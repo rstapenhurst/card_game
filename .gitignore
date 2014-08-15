@@ -6,4 +6,5 @@ tmp/
 obj/
 public/assets
 app/assets/javascripts/game.js.js
+tags
 
