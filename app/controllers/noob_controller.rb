@@ -35,7 +35,12 @@ class NoobController < WebsocketRails::BaseController
 			WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}",
 																												 filter_log(events, player.id == p.id))
 		end
-		@game.event_index += events.size
+		index = @game.event_index
+		events.each do |event|
+			index += 1
+			event_model = Event.create(event_index: index, event: event.to_s, game: @game)
+		end
+		@game.event_index = index
 		@game.save
 	end
 
