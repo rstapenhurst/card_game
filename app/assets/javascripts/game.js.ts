@@ -29,6 +29,127 @@ class Card {
   is_victory: boolean;
 }
 
+module Events {
+
+  export function handle(state: ClientState, raw) {
+    switch (raw.type) {
+      case 'phase_change':
+        handlePhaseChange(state, <PhaseChange>raw);
+        break;
+      case 'create_supply':
+        handleCreateSupply(state, <CreateSupply>raw);
+        break;
+      case 'move_card':
+        handleMoveCard(state, <MoveCard>raw);
+        break;
+      case 'update_current_player':
+        handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
+        break;
+      default:
+        log(null, JSON.stringify(raw));
+        console.log(raw);
+        break;
+    }
+  }
+
+  function log(event: EventBase, message: string) {
+    $("#game-log").prepend("<li>[" + (event != null ? ("" + event.event_index) : "***") + "] " + message + "</li>");
+  }
+
+  function maybe(event: any, key: string): any {
+    if (event.hasOwnProperty('all_log') && event.all_log.hasOwnProperty(key))
+      return {value: event.all_log[key], scope: "all"};
+    if (event.hasOwnProperty('opponent_log') && event.opponent_log.hasOwnProperty(key))
+      return {value: event.opponent_log[key], scope: "opponent"};
+    if (event.hasOwnProperty('player_log') && event.player_log.hasOwnProperty(key))
+      return {value: event.player_log[key], scope: "player"};
+
+    return null;
+  }
+
+  declare class CreateSupply extends EventBase {
+    all_log: FaceUpPile;
+  }
+
+  function handleCreateSupply(state: ClientState, event: CreateSupply) {
+    log(event, "Create supply [" + event.all_log.top.template_name + "], size: " + event.all_log.size);
+    state.createSupply(event.all_log);
+  }
+
+  declare class UpdatePlayer extends EventBase {
+    all_log: {
+      key: string;
+      value: any;
+    }
+  }
+
+
+  function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
+    log(event, "[" + event.all_log.key + "]  -> " + event.all_log.value);
+    state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
+  }
+
+  declare class PhaseChange extends EventBase {
+    all_log: {
+      new_phase: string;
+    }
+  }
+
+  function handlePhaseChange(state: ClientState, event: PhaseChange) {
+    log(event, "Changing phase to: " + event.all_log.new_phase);
+    state.updatePhase(event.all_log.new_phase);
+  }
+
+  declare class MoveCard extends EventBase {
+    all_log: {
+      from_player: string;
+      from_zone: string;
+      from_size: number;
+
+      revealed: Card;
+
+      to_player: string;
+      to_zone: string;
+      to_size: number;
+    }
+  }
+
+  function handleMoveCard(state: ClientState, event: MoveCard) {
+    var removed = maybe(event, "from_card");
+    var removed_card_name: string = removed && removed.value.template_name || "a card";
+
+    if (removed && event.all_log.from_zone == "hand")
+      state.removeFromHand(removed.value);
+    else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0)
+      state.removeFromSupply(event.all_log.from_zone, event.all_log.revealed, event.all_log.from_size);
+    else if (event.all_log.from_zone == "deck")
+      state.removeFromDeck(event.all_log.from_player, event.all_log.from_size);
+    else if (event.all_log.from_zone == 'play_area')
+      state.removeFromPlayArea(removed.value);
+
+
+    var added = maybe(event, "to_card");
+    var added_card_name: string = added && added.value.template_name || "a card";
+
+    if (event.all_log.to_zone == "play_area")
+      state.addToPlayArea(added.value);
+    else if (event.all_log.to_zone == "hand")
+      state.addToHand(event.all_log.to_player, added && added.value || null, event.all_log.to_size);
+    else if (event.all_log.to_zone == "discard")
+      state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
+    else if (event.all_log.to_zone == "supply")
+      state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
+
+    var definite = added && added.value.name || removed && removed.value.name || 'a card';
+
+    log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+  }
+
+  declare class EventBase {
+    event_index: number;
+  }
+}
+
 declare class FaceUpPile {
   id: number;
   size: number;
@@ -37,6 +158,7 @@ declare class FaceUpPile {
 }
 
 declare class You {
+  name: string;
   deck_size: number;
   hand: Array<Card>;
   discard: FaceUpPile;
@@ -50,12 +172,124 @@ declare class Player {
   buys: number;
 }
 
+
 declare class GameState {
   phase: string;
   current_player: Player;
   player: You;
   play_area: Array<Card>;
   supplies: Array<FaceUpPile>;
+}
+
+class ClientDirtyBits {
+  phase: boolean;
+  hand: boolean;
+  playArea: boolean;
+  currentPlayer: boolean;
+  myDiscard: boolean;
+  supplies: boolean;
+  deck: boolean;
+}
+
+class ClientState {
+  gameState: GameState;
+  dirty: ClientDirtyBits;
+
+  constructor() {
+    this.dirty = new ClientDirtyBits();
+  }
+
+  fullUpdate(newState) {
+    this.gameState = newState;
+  }
+
+  removeFromDeck(player: string, newSize: number) {
+    if (player == this.gameState.player.name) {
+      this.gameState.player.deck_size = newSize;
+      this.dirty.deck = true;
+    }
+  }
+
+  addToHand(player: string, card: Card, newSize: number) {
+    if (player == this.gameState.player.name) {
+      this.gameState.player.hand.push(card);
+      this.dirty.hand = true;
+    }
+  }
+
+  removeFromHand(card: Card) {
+    for(var i = 0; i < this.gameState.player.hand.length; i++) {
+      if (this.gameState.player.hand[i].id == card.id) {
+        this.gameState.player.hand.splice(i, 1);
+        break;
+      }
+    }
+    this.dirty.hand = true;
+  }
+
+  /*
+  wtf add and remove are the same???
+  */
+  addToSupply(supply: string, newTop: Card, newSize: number) {
+    this.gameState.supplies.forEach((pile) => {
+      if (pile.id == parseInt(supply.substring(7))) {
+        pile.top = newTop;
+        pile.size = newSize;
+      }
+    });
+
+    this.dirty.supplies = true;
+  }
+  removeFromSupply(supply: string, newTop: Card, newSize: number) {
+    this.gameState.supplies.forEach((pile) => {
+      if (pile.id == parseInt(supply.substring(7))) {
+        pile.top = newTop;
+        pile.size = newSize;
+      }
+    });
+
+    this.dirty.supplies = true;
+  }
+
+  addToDiscard(player: string, card: Card, newSize: number) {
+    if (player == this.gameState.player.name) {
+      this.gameState.player.discard.size = newSize;
+      this.gameState.player.discard.top = card;
+
+      this.dirty.myDiscard = true;
+    }
+  }
+
+  removeFromPlayArea(card: Card) {
+    for(var i = 0; i < this.gameState.play_area.length; i++) {
+      if (this.gameState.play_area[i].id == card.id) {
+        this.gameState.play_area.splice(i, 1);
+        break;
+      }
+    }
+    this.dirty.playArea = true;
+  }
+
+  addToPlayArea(card: Card) {
+    this.gameState.play_area.push(card);
+    this.dirty.playArea = true;
+  }
+
+  createSupply = (supply) => {
+    this.gameState.supplies.push(supply);
+    this.dirty.supplies = true;
+  }
+
+  updateCurrentPlayer = (key, value) => {
+
+    this.gameState.current_player[key] = value;
+    this.dirty.currentPlayer = true;
+  }
+
+  updatePhase = (newPhase) => {
+    this.gameState.phase = newPhase;
+    this.dirty.phase = true;
+  }
 }
 
 declare var game_id: number;
@@ -79,7 +313,7 @@ class CardGame {
   game: Phaser.Game;
   dispatcher: WebSocketRails;
   channel: Channel;
-  state: GameState;
+  state: ClientState;
 
   handWidgets: Phaser.Group;
   playAreaWidgets: Phaser.Group;
@@ -92,6 +326,7 @@ class CardGame {
 
   constructor() {
     this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create });
+    this.state = new ClientState();
   }
 
   preload = () => {
@@ -126,7 +361,7 @@ class CardGame {
     var deckGraphic = this.deckWidgets.create(0, 0, 'card_face_empty');
     deckGraphic.tint = 0x666666;
 
-    var text = this.game.add.text(0, 0, "" + this.state.player.deck_size, {font: "10px Arial"});
+    var text = this.game.add.text(0, 0, "" + this.state.gameState.player.deck_size, {font: "10px Arial"});
     text.x = 30;
     text.y = 20;
 
@@ -136,18 +371,18 @@ class CardGame {
   drawDiscard = () => {
     this.discardWidgets.removeAll();
 
-    if (this.state.player.discard.top != null) {
+    if (this.state.gameState.player.discard.top != null) {
       this.discardWidgets.create(0, 0, 'card_face_empty');
 
       var text = this.game.add.text(0, 0, 
-        "DISCARD (" + this.state.player.discard.size + ")", {font: "10px Arial"});
+        "DISCARD (" + this.state.gameState.player.discard.size + ")", {font: "10px Arial"});
       text.x = 30;
       text.y = 20;
 
       this.discardWidgets.add(text);
 
       var text = this.game.add.text(0, 0, 
-        "" + this.state.player.discard.top.template_name, {font: "10px Arial"});
+        "" + this.state.gameState.player.discard.top.template_name, {font: "10px Arial"});
       text.x = 30;
       text.y = 40;
 
@@ -171,7 +406,7 @@ class CardGame {
           }
         } else if (b.is_action) {
           //In action phase, actions come before treasure
-          return this.state.phase == "action" ? 1 : -1;
+          return this.state.gameState.phase == "action" ? 1 : -1;
         } else {
           return -1;
         }
@@ -179,7 +414,7 @@ class CardGame {
         if (b.is_action) {
           return a.template_name.localeCompare(b.template_name);
         } else if (b.is_treasure) {
-          return (this.state.phase == "treasure" || this.state.phase == "buy") ? 1 : -1;
+          return (this.state.gameState.phase == "treasure" || this.state.gameState.phase == "buy") ? 1 : -1;
         } else {
           return -1;
         }
@@ -218,19 +453,10 @@ class CardGame {
 
   }
 
-  onFullGameState = (data) => {
-    this.state = data.game;
-    this.drawHand(this.state.player.hand, this.handWidgets);
-    this.drawPlayArea(this.state.play_area, this.playAreaWidgets);
-    this.turnIndicator.setText("Player: " + this.state.current_player.name + " Phase: " + this.state.phase);
-    this.currentPlayerStatus.setText("Money: " + this.state.current_player.money + " Buys: " + this.state.current_player.buys + " Actions: " + this.state.current_player.actions);
-
-    this.drawDiscard();
-    this.drawDeck();
-
+  drawSupplies = () => {
     this.supplyWidgets.removeAll(true, true);
     var ypos = 0;
-    this.state.supplies.forEach((x) => {
+    this.state.gameState.supplies.forEach((x) => {
       var sprite = this.supplyWidgets.create(0, ypos, 'small_card_face_empty');
 
       if (x.top != null) {
@@ -247,6 +473,19 @@ class CardGame {
 
       ypos = ypos + 68;
     });
+  }
+
+  onFullGameState = (data) => {
+    this.state.fullUpdate(data.game);
+    this.drawHand(this.state.gameState.player.hand, this.handWidgets);
+    this.drawPlayArea(this.state.gameState.play_area, this.playAreaWidgets);
+    this.turnIndicator.setText("Player: " + this.state.gameState.current_player.name + " Phase: " + this.state.gameState.phase);
+    this.currentPlayerStatus.setText("Money: " + this.state.gameState.current_player.money + " Buys: " + this.state.gameState.current_player.buys + " Actions: " + this.state.gameState.current_player.actions);
+
+    this.drawDiscard();
+    this.drawDeck();
+    this.drawSupplies();
+
 
 
   }
@@ -260,28 +499,59 @@ class CardGame {
   }
 
   doChat = (message) => {
-	if (message.length > 0) {
-		this.trigger('chat_event', {message: message});
-	}
+    if (message.length > 0) {
+      this.trigger('chat_event', {message: message});
+    }
   }
 
   doAdvance = () => {
     this.trigger('phase_advance_event', null);
-    this.trigger('game_fetch_event', null);
   }
 
   onChat = (data) => {
-  $("#chat-tab-all-chat").prepend('<div><span class="chat-sender">' + data.from + '</span><span> ' + data.message + '</span></div>');
+    $("#chat-tab-all-chat").prepend('<div><span class="chat-sender">' + data.from + '</span><span> ' + data.message + '</span></div>');
   }
+
   onGameUpdate = (data) => {
-    this.trigger('game_fetch_event', null);
-		data.forEach((logEvent) => {
-			if (logEvent.player_log != null) {
-				$("#game-log").prepend("<li>[" + logEvent.event_index + "] " + logEvent.player_log + "</li>");
-			} else {
-				$("#game-log").prepend("<li>[" + logEvent.event_index + "] " + logEvent.all_log + "</li>");
-			}
+    data.forEach((logEvent) => {
+      Events.handle(this.state, logEvent);
     });
+
+    if (this.state.dirty.deck) {
+      this.drawDeck();
+      this.state.dirty.deck = false;
+    }
+
+    if (this.state.dirty.supplies) {
+      this.drawSupplies();
+      this.state.dirty.supplies = false;
+    }
+
+    if (this.state.dirty.myDiscard) {
+      this.drawDiscard();
+      this.state.dirty.myDiscard = false;
+    }
+
+    if (this.state.dirty.playArea) {
+      this.drawPlayArea(this.state.gameState.play_area, this.playAreaWidgets);
+      this.state.dirty.playArea = false;
+    }
+
+    if (this.state.dirty.hand) {
+      console.log("redraw hand");
+      this.drawHand(this.state.gameState.player.hand, this.handWidgets);
+      this.state.dirty.hand = false;
+    }
+
+    if (this.state.dirty.phase) {
+      this.turnIndicator.setText("Player: " + this.state.gameState.current_player.name + " Phase: " + this.state.gameState.phase);
+      this.state.dirty.phase = false;
+    }
+
+    if (this.state.dirty.currentPlayer) {
+      this.currentPlayerStatus.setText("Money: " + this.state.gameState.current_player.money + " Buys: " + this.state.gameState.current_player.buys + " Actions: " + this.state.gameState.current_player.actions);
+      this.state.dirty.phase = false;
+    }
   }
 
   create = () => {
@@ -330,11 +600,11 @@ var game;
 window.onload = () => {
   game = new CardGame();
   $("#chat-text-input").bind('keypress', function(ev) {
-	if (ev.which == 13) {
-		ev.preventDefault();
-		game.doChat($(this).val().trim());
-		$(this).val("");
-	}
+    if (ev.which == 13) {
+      ev.preventDefault();
+      game.doChat($(this).val().trim());
+      $(this).val("");
+    }
   });
 }
 

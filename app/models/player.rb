@@ -12,6 +12,7 @@ class Player < ActiveRecord::Base
 	end
 
 	def draw(count, events)
+    events << { type: "debug", all_log: "DRAWING YOU FUCKING NOIOBS" }
 		count.times() do
 			if deck.is_empty
 				if (discard.is_empty)
@@ -21,20 +22,31 @@ class Player < ActiveRecord::Base
 					deck.add_card(card)
 				end
 				events << {
-					all_log: "Set #{discard.name} to 0 cards"
-				} << {
-					all_log: "Set #{deck.name} to #{deck.cards.count} cards"
-				}
+          type: 'recycle_deck',
+					all_log: {
+            player: self.name,
+            size: deck.cards.count
+          }
+				} 
 				deck.shuffle
 			end
 			card = deck.top_card
 			hand.add_card(card)
-			events << {
-				all_log: "Set #{deck.name} to #{deck.cards.count} cards"
-			} << {
-				player_log: "Added #{card.name} to #{hand.name}",
-				opponent_log: "Set #{hand.name} to #{hand.cards.count} cards"
-			}
+
+      events << {
+        type: 'move_card',
+        all_log: {
+          from_player: name,
+          from_zone: "deck",
+          from_size: deck.cards.count,
+          to_player: name,
+          to_zone: "hand",
+          to_size: hand.cards.count,
+        },
+        player_log: {
+          to_card: card.view
+        }
+      }
 		end
 	end
 

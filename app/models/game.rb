@@ -29,12 +29,20 @@ class Game < ActiveRecord::Base
 	def play_card(player, card, events)
 
 		player.play_area.add_card(card)
-		events << {
-			player_log: "Removed #{card.name} from #{player.hand.name}",
-			opponent_log: "Set #{player.hand.name} to #{player.hand.cards.count} cards"
-		} << {
-			all_log: "Added #{card.name} to #{player.play_area.name}"
-		}
+
+    events << {
+      type: "move_card",
+      all_log: {
+        from_player: player.name,
+        from_zone: "hand",
+        from_size: player.hand.cards.count,
+        to_player: player.name,
+        to_zone: "play_area",
+        to_size: player.play_area.cards.count,
+        to_card: card.view
+      },
+      player_log: { from_card: card.view }
+    }
 
 		dirty_actions = dirty_money = dirty_buys = false
 		if card.is_action == 1
@@ -56,13 +64,16 @@ class Game < ActiveRecord::Base
 			end
 		end
 		events << {
-			all_log: "Set player money to #{player.money}"
+      type: "update_current_player",
+			all_log: { key: "money", value: player.money }
 		} if dirty_money
 	  events << {
-			all_log: "Set player actions to #{player.actions}"
+      type: "update_current_player",
+			all_log: { key: "actions", value: player.actions }
 		} if dirty_actions
 		events << {
-			all_log: "Set player buys to #{player.buys}"
+      type: "update_current_player",
+			all_log: { key: "buys", value: player.buys }
 		} if dirty_buys
 		check_auto_advance(events)
 	end
@@ -71,26 +82,37 @@ class Game < ActiveRecord::Base
 		candidate_card = supply.card_pile.top_card
 		if player.money >= candidate_card.cost and player.buys >= 1
 			player.discard.add_card(candidate_card)
+      newTop = supply.card_pile.top_card
 			events << {
-				all_log: "Added #{candidate_card.name} on top of #{player.discard.name}"
-			}
-			events << {
-				all_log: "Set #{player.discard.name} to #{player.discard.cards.count} cards"
+				type: "move_card",
+        all_log: {
+          from_player: "<system>",
+          from_zone: "supply:#{supply.id}",
+          from_size: supply.card_pile.cards.count,
+          from_card: candidate_card.view,
+          revealed: newTop && newTop.view,
+          to_player: player.name,
+          to_zone: "discard",
+          to_size: player.discard.cards.count,
+          to_card: candidate_card.view
+        }
 			}
 			player.set_money(player.money - candidate_card.cost)
 			events << {
-				all_log: "Set player money to #{player.money}"
+        type: "update_current_player",
+				all_log: { key: "money", value: player.money }
 			} if candidate_card.cost > 0
 			player.set_buys(player.buys - 1)
 			events << {
-				all_log: "Set player buys to #{player.buys}"
+        type: "update_current_player",
+				all_log: {key: "buys", value: player.buys}
 			}
 
 			check_auto_advance(events)
 		end
 	end
 
-	def setup_decks
+	def setup_decks(events)
 		players.each do |player|
 			7.times() do
 				copper = create_card("Copper")
@@ -101,27 +123,27 @@ class Game < ActiveRecord::Base
 				player.deck.add_card(estate)
 			end
 			player.deck.shuffle
-			player.draw(5, [])
+			player.draw(5, events)
 		end
 	end
 
-	def setup_supplies
-		add_supply('Copper', 'treasure', 10)
-		add_supply('Silver', 'treasure', 10)
-		add_supply('Gold', 'treasure', 10)
+	def setup_supplies(events)
+		add_supply('Copper', 'treasure', 10, events)
+		add_supply('Silver', 'treasure', 10, events)
+		add_supply('Gold', 'treasure', 10, events)
 
-		add_supply('Estate', 'victory', 10)
-		add_supply('Duchy', 'victory', 10)
-		add_supply('Province', 'victory', 10)
+		add_supply('Estate', 'victory', 10, events)
+		add_supply('Duchy', 'victory', 10, events)
+		add_supply('Province', 'victory', 10, events)
 
-		add_supply('Village', 'kingdom', 10)
-		add_supply('Smithy', 'kingdom', 10)
-		add_supply('Festival', 'kingdom', 10)
-		add_supply('Market', 'kingdom', 10)
-		add_supply('Laboratory', 'kingdom', 10)
+		add_supply('Village', 'kingdom', 10, events)
+		add_supply('Smithy', 'kingdom', 10, events)
+		add_supply('Festival', 'kingdom', 10, events)
+		add_supply('Market', 'kingdom', 10, events)
+		add_supply('Laboratory', 'kingdom', 10, events)
 	end
 
-	def add_supply(name, type, count)
+	def add_supply(name, type, count, events)
 		card_pile = CardPile.create(name: name);
 		supply = Supply.create(
 			game: self,
@@ -132,6 +154,14 @@ class Game < ActiveRecord::Base
 			card = create_card(name)
 			card_pile.add_card(card)
 		end
+    events << {
+      type: "create_supply",
+      all_log: {
+        id: supply.id,
+        top: card_pile.top_card.view,
+        size: count
+      }
+    }
 	end
 
 	def create_card(template_name)
@@ -145,10 +175,11 @@ class Game < ActiveRecord::Base
 
 	def advance_phase(events)
 		if phase == 'init'
-			setup_decks
-			setup_supplies
 			self.event_index = 0
       self.save
+
+			setup_decks events
+			setup_supplies events
 
 			set_phase('action', events)
 		elsif phase == 'action'
@@ -168,7 +199,10 @@ class Game < ActiveRecord::Base
 	def set_phase(new_phase, events)
 		self.phase = new_phase
 		events << {
-			all_log: "Set phase to #{phase}"
+      type: "phase_change",
+      all_log: {
+        new_phase: "#{phase}"
+      }
 		}
 	end
 
@@ -275,12 +309,38 @@ class Game < ActiveRecord::Base
 		player = current_player
 		player.play_area.cards.each do |card|
 			player.discard.add_card(card)
+      events << {
+        type: "move_card",
+        all_log: {
+          from_player: player.name,
+          from_zone: 'play_area',
+          from_size: player.play_area.cards.count,
+          from_card: card.view,
+          to_player: player.name,
+          to_zone: 'discard',
+          to_size: player.discard.cards.count,
+          to_card: card.view
+        }
+      }
 		end
 
 		player.hand.cards.each do |card|
 			player.discard.add_card(card)
+      events << {
+        type: "move_card",
+        all_log: {
+          from_player: player.name,
+          from_zone: 'hand',
+          from_size: player.hand.cards.count,
+          from_card: card.view,
+          to_player: player.name,
+          to_zone: 'discard',
+          to_size: player.discard.cards.count,
+          to_card: card.view
+        }
+      }
 		end
-		player.draw(5, [])
+		player.draw(5, events)
 		player.set_money(0)
 		player.set_buys(1)
 		player.set_actions(1)

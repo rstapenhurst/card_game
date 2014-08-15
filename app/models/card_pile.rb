@@ -19,6 +19,9 @@ class CardPile < ActiveRecord::Base
 
 	end
 
+  def move_card(from, card)
+  end
+
 	def shuffle
 		index = 0
 		piles.shuffle.each do |pile|
@@ -29,8 +32,12 @@ class CardPile < ActiveRecord::Base
 	end
 
 	def top_card
-		card = Pile.where(card_pile_id: id).order("card_order DESC").first().card
-		return card
+    if is_empty
+      return nil
+    else
+      card = Pile.where(card_pile_id: id).order("card_order DESC").first().card
+      return card
+    end
 	end
 
 	def is_empty
