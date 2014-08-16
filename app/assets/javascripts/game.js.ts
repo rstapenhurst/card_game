@@ -49,8 +49,11 @@ module Events {
           switch (raw.player_log.dialog_type) {
             case 'choose_cards':
               handleChooseCards(state, <ChooseCards>raw);
-              break;
-            default:
+							break;
+						case 'complete':
+							state.setFunctions(null, null);
+							break;
+						default:
               log(null, JSON.stringify(raw));
               break;
           }
