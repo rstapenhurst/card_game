@@ -31,6 +31,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def hook_reactions(type, player, card, events)
+		print "React now"
+		return false
 	end
 
 	def play_card(player, card, events)
@@ -51,12 +53,12 @@ class Game < ActiveRecord::Base
       player_log: { from_card: card.view }
     }
 
-		#if card.is_attack
-	#		puts "Some noob played an attack"
-#			if hook_reactions(:card_played, player, card, events)#
-			#	return
-			#end
-		#end
+		if card.has_attr('is_attack') and card.is_attack
+			puts "Some noob played an attack"
+			if hook_reactions(:card_played, player, card, events)
+				return
+			end
+		end
 
 		dirty_actions = dirty_money = dirty_buys = false
 		if card.is_action == 1

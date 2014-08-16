@@ -15,6 +15,7 @@ class Player < ActiveRecord::Base
     events << { type: "debug", all_log: "DRAWING YOU FUCKING NOIOBS" }
 		count.times() do
 			if deck.is_empty
+				q
 				if (discard.is_empty)
 					return
 				end
@@ -43,9 +44,10 @@ class Player < ActiveRecord::Base
           to_zone: "hand",
           to_size: hand.cards.count,
         },
-        player_log: {
+        logs_by_id: [{
+					owner_id: id,
           to_card: card.view
-        }
+        }]
       }
 		end
 	end
