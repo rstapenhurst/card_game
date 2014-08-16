@@ -97,31 +97,57 @@ module Events {
 
   function doNothing() { }
 
+  class FilterComplete {
+    static exactly(cards: any, num: number) {
+      return cards.length == num;
+    }
+    static at_least(cards: any, num: number) {
+      return cards.length > num;
+    }
+  }
+
+  class FilterSelect {
+    static exactly(cards: any, card: Card, num: number) {
+      return cards.length < num;
+    }
+    static at_least(cards: any, card: Card, num: number) {
+      return true;
+    }
+  }
+
   function handleChooseCards(state: ClientState, event: ChooseCards) {
     if (event.player_log.source == "hand") {
       var selected = {};
+      selected['length'] = 0;
       state.setFunctions(
         function(game, source, card) {
           if (source == "hand") {
             if (selected.hasOwnProperty('' + card.id)) {
               delete selected['' + card.id]
+              selected['length']--;
               card.marked = false;
             } else {
-              selected['' + card.id] = true;
-              card.marked = true;
+              if (FilterSelect[event.player_log.count_type](selected, card, event.player_log.count_value)) {
+                selected['' + card.id] = true;
+                card.marked = true;
+                selected['length']++;
+              }
             }
 
             game.drawHand();
           }
         },
         function(game) {
-          var cards = [];
-          for (var key in selected) {
-            cards.push(key);
-          }
-          game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
+          if (FilterComplete[event.player_log.count_type](selected, event.player_log.count_value)) {
+            var cards = [];
+            delete selected['length']
+            for (var key in selected) {
+              cards.push(key);
+            }
+            game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
 
-          state.setFunctions(doNothing, doNothing);
+            state.setFunctions(doNothing, doNothing);
+          }
         }
       );
     }
