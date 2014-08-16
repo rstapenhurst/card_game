@@ -10,8 +10,8 @@ class NoobController < WebsocketRails::BaseController
 		events.each do |event|
 			index += 1
 			output_event = event.slice(:type, :all_log, log_player.id == current_player.id ? :player_log : :opponent_log)
-			if event.has_key?('logs_by_id')
-				log_by_id = event.logs_by_id.select{|log| log_player.id == log.owner_id}
+			if event.has_key?(:logs_by_id)
+				log_by_id = event[:logs_by_id].select{|log| log_player.id == log[:owner_id]}
 				if log_by_id.count() == 1
 					output_event.merge!({
 						log_by_id: log_by_id
