@@ -792,7 +792,7 @@ class CardGame {
 
     this.playAreaWidgets = this.game.add.group();
     this.playAreaWidgets.x = 10;
-    this.playAreaWidgets.y = this.game.height - 400;
+    this.playAreaWidgets.y = this.game.height - 600;
 
     this.discardWidgets = this.game.add.group();
     this.discardWidgets.x = this.game.width - (Util.CardPadded * 2);
