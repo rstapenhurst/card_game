@@ -388,7 +388,7 @@ class ClientState {
   }
 
   handleChooseCards(event: Events.ChooseCards) {
-    if (event.player_log.source == "hand") {
+    if (event.get('source') == "hand") {
       var selected = {};
       selected['length'] = 0;
       this.setFunctions(
