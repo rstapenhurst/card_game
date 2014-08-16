@@ -50,11 +50,8 @@ module Events {
             case 'complete':
               state.setFunctions(null, null);
               break;
-            case 'choose_cards':
-              handleChooseCards(state, <ChooseCards>raw);
-							break;
-						default:
-              log(null, JSON.stringify(raw));
+            default:
+              state.handleDialog(raw);
               break;
           }
         }
@@ -84,7 +81,7 @@ module Events {
     return null;
   }
 
-  declare class ChooseCards extends EventBase {
+  export declare class ChooseCards extends EventBase {
     player_log: {
       id: number;
       dialog_type: string;
@@ -95,63 +92,8 @@ module Events {
     }
   }
 
-  function doNothing() { }
 
-  class FilterComplete {
-    static exactly(cards: any, num: number) {
-      return cards.length == num;
-    }
-    static at_least(cards: any, num: number) {
-      return cards.length > num;
-    }
-  }
 
-  class FilterSelect {
-    static exactly(cards: any, card: Card, num: number) {
-      return cards.length < num;
-    }
-    static at_least(cards: any, card: Card, num: number) {
-      return true;
-    }
-  }
-
-  function handleChooseCards(state: ClientState, event: ChooseCards) {
-    if (event.player_log.source == "hand") {
-      var selected = {};
-      selected['length'] = 0;
-      state.setFunctions(
-        function(game, source, card) {
-          if (source == "hand") {
-            if (selected.hasOwnProperty('' + card.id)) {
-              delete selected['' + card.id]
-              selected['length']--;
-              card.marked = false;
-            } else {
-              if (FilterSelect[event.player_log.count_type](selected, card, event.player_log.count_value)) {
-                selected['' + card.id] = true;
-                card.marked = true;
-                selected['length']++;
-              }
-            }
-
-            game.drawHand();
-          }
-        },
-        function(game) {
-          if (FilterComplete[event.player_log.count_type](selected, event.player_log.count_value)) {
-            var cards = [];
-            delete selected['length']
-            for (var key in selected) {
-              cards.push(key);
-            }
-            game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
-
-            state.setFunctions(doNothing, doNothing);
-          }
-        }
-      );
-    }
-  }
 
   declare class CreateSupply extends EventBase {
     all_log: FaceUpPile;
@@ -231,7 +173,7 @@ module Events {
     log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
   }
 
-  declare class EventBase {
+  export declare class EventBase {
     event_index: number;
   }
 }
@@ -265,6 +207,7 @@ declare class GameState {
   player: You;
   play_area: Array<Card>;
   supplies: Array<FaceUpPile>;
+  dialogs: Array<any>;
 }
 
 class ClientDirtyBits {
@@ -278,6 +221,24 @@ class ClientDirtyBits {
 
   instructions: boolean;
 
+}
+
+class FilterComplete {
+  static exactly(cards: any, num: number) {
+    return cards.length == num;
+  }
+  static at_least(cards: any, num: number) {
+    return cards.length > num;
+  }
+}
+
+class FilterSelect {
+  static exactly(cards: any, card: Card, num: number) {
+    return cards.length < num;
+  }
+  static at_least(cards: any, card: Card, num: number) {
+    return true;
+  }
 }
 
 class ClientState {
@@ -394,6 +355,55 @@ class ClientState {
     this.gameState.phase = newPhase;
     this.dirty.phase = true;
   }
+  
+  handleDialog(raw: any) {
+    switch (raw.player_log.dialog_type) {
+      case 'choose_cards':
+        this.handleChooseCards(<Events.ChooseCards>raw);
+        break;
+      default:
+        console.log("Unknown dialog: " + JSON.stringify(raw));
+        break;
+    }
+  }
+
+  handleChooseCards(event: Events.ChooseCards) {
+    if (event.player_log.source == "hand") {
+      var selected = {};
+      selected['length'] = 0;
+      this.setFunctions(
+        function(game, source, card) {
+          if (source == "hand") {
+            if (selected.hasOwnProperty('' + card.id)) {
+              delete selected['' + card.id]
+              selected['length']--;
+              card.marked = false;
+            } else {
+              if (FilterSelect[event.player_log.count_type](selected, card, event.player_log.count_value)) {
+                selected['' + card.id] = true;
+                card.marked = true;
+                selected['length']++;
+              }
+            }
+
+            game.drawHand();
+          }
+        },
+        function(game) {
+          if (FilterComplete[event.player_log.count_type](selected, event.player_log.count_value)) {
+            var cards = [];
+            delete selected['length']
+            for (var key in selected) {
+              cards.push(key);
+            }
+            game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
+
+            this.setFunctions(doNothing, doNothing);
+          }
+        }
+      );
+    }
+  }
 }
 
 declare var game_id: number;
@@ -445,6 +455,8 @@ class CursorSet {
     this.current.position = game.input.mousePointer.position;
   }
 }
+
+function doNothing() { }
 
 class CardGame {
 
@@ -644,6 +656,7 @@ class CardGame {
   }
 
   onFullGameState = (data) => {
+    console.log(data);
     this.state.fullUpdate(data.game);
     this.drawHand();
     this.drawPlayArea(this.state.gameState.play_area, this.playAreaWidgets);
@@ -654,7 +667,13 @@ class CardGame {
     this.drawDeck();
     this.drawSupplies();
 
-
+    if (this.state.gameState.dialogs) {
+      this.state.gameState.dialogs.forEach((dialog) => {
+        this.state.handleDialog({
+          player_log: dialog
+        });
+      });
+    }
   }
 
   trigger = (eventName, data) => {
