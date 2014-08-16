@@ -58,6 +58,7 @@ module Events {
 
   export function handle(state: ClientState, raw) {
 
+    console.log(raw);
     event(raw);
 
     switch (raw.type) {
@@ -85,7 +86,6 @@ module Events {
         break;
       default:
         log(null, JSON.stringify(raw));
-        console.log(raw);
         break;
     }
   }
