@@ -4,12 +4,20 @@ class NoobController < WebsocketRails::BaseController
 		controller_store[:message_count] = 0
 	end
 
-	def filter_log(events, is_current_player)
+	def filter_log(events, log_player, current_player)
 		output = []
 		index = @game.event_index
 		events.each do |event|
 			index += 1
-			output_event = event.slice(:type, :all_log, is_current_player ? :player_log : :opponent_log)
+			output_event = event.slice(:type, :all_log, log_player.id == current_player.id ? :player_log : :opponent_log)
+			if event.has_key?('logs_by_id')
+				log_by_id = event.logs_by_id.select{|log| log_player.id == log.owner_id}
+				if log_by_id.count() == 0
+					output_event.merge!({
+						log_by_id: log_by_id
+					})
+				end
+			end
       output_event[:event_index] = index
 			output << output_event
 		end
@@ -19,7 +27,7 @@ class NoobController < WebsocketRails::BaseController
 	def broadcast_log(game, player, events)
 		@game.players.each do |p|
 			WebsocketRails["game_updates_#{@game.id}"].trigger("update_game_state_#{p.id}",
-																												 filter_log(events, player.id == p.id))
+																												 filter_log(events, p, player))
 		end
 		index = @game.event_index
 		events.each do |event|

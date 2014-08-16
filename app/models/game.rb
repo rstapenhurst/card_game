@@ -152,6 +152,7 @@ class Game < ActiveRecord::Base
 		add_supply('Market', 'kingdom', 10, events)
 		add_supply('Laboratory', 'kingdom', 10, events)
 		add_supply('Cellar', 'kingdom', 10, events)
+		add_supply('Militia', 'kingdom', 10, events)
 	end
 
 	def add_supply(name, type, count, events)
