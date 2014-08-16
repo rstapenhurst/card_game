@@ -53,9 +53,6 @@ module Events {
             case 'choose_cards':
               handleChooseCards(state, <ChooseCards>raw);
 							break;
-						case 'complete':
-							state.setFunctions(null, null);
-							break;
 						default:
               log(null, JSON.stringify(raw));
               break;
