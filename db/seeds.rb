@@ -35,6 +35,7 @@ make_card("Smithy", 4, { is_action: 1, cards: 3})
 make_card("Laboratory", 5, { is_action: 1, cards: 2, actions: 1})
 make_card("Market", 5, { is_action: 1, cards: 1, actions: 1, money: 1, buys: 1})
 make_card("Festival", 5, { is_action: 1, actions: 2, money: 2, buys: 1})
+make_card("Woodcutter", 3, { is_action: 1, buys: 1, money: 2})
 
 make_card("Cellar", 2, { is_action: 1, actions: 1, special_Cellar: 0})
 make_card("Militia", 4, { is_action: 1, money: 2, special_AttackDiscardTo: 3})
