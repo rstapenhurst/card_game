@@ -377,7 +377,7 @@ class ClientState {
   }
   
   handleDialog(raw: any) {
-    switch (raw.player_log.dialog_type) {
+    switch (raw.get('dialog_type')) {
       case 'choose_cards':
         this.handleChooseCards(<Events.ChooseCards>raw);
         break;
