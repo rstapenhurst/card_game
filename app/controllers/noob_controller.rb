@@ -113,6 +113,21 @@ class NoobController < WebsocketRails::BaseController
 		end
 	end
 
+	def respond_dialog
+
+		data = JSON.parse(message)
+		@game = Game.find(data['game_id'])
+		dialog = Dialog.find(data['data']['dialog_id'])
+
+		Game.transaction do
+
+			user = current_user
+			player = Player.where(game_id: @game.id, user_id: user.id).take
+
+		end
+
+	end
+
   private
     def set_game(data)
       @game = Game.find(data[:game_id])

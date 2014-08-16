@@ -1,8 +1,11 @@
+require 'specials'
+
 class Game < ActiveRecord::Base
 	has_many :players, dependent: :destroy
 	has_many :supplies, dependent: :destroy
 	has_many :cards, dependent: :destroy
 	has_many :events, dependent: :destroy
+	has_many :dialogs, dependent: :destroy
 	belongs_to :trash, class_name:"CardPile", dependent: :destroy
 
 	def create_player_for_user(user_id)
@@ -51,6 +54,7 @@ class Game < ActiveRecord::Base
 			dirty_actions = true
 		end
 		card.card_attributes.each do |attr|
+			puts "Playing card attribute for #{attr.key}"
 			if (attr.key == "money")
 				player.set_money(player.money + attr.value)
 				dirty_money = true
@@ -62,6 +66,11 @@ class Game < ActiveRecord::Base
 				dirty_buys = true
 			elsif (attr.key == "cards")
 				player.draw(attr.value, events)
+			elsif (attr.key =~ /^special_/)
+				class_name = attr.key
+				class_name.slice!('special_')
+				special = class_name.constantize.new()
+				special.execute(self, player, events)
 			end
 		end
 		events << {
@@ -142,6 +151,7 @@ class Game < ActiveRecord::Base
 		add_supply('Festival', 'kingdom', 10, events)
 		add_supply('Market', 'kingdom', 10, events)
 		add_supply('Laboratory', 'kingdom', 10, events)
+		add_supply('Cellar', 'kingdom', 10, events)
 	end
 
 	def add_supply(name, type, count, events)
@@ -395,6 +405,11 @@ class Game < ActiveRecord::Base
 				id: trash.id,
 				size: trash.cards.count
 			}.merge!(trash.is_empty ? {} : { topcard: trash.top_card.view }),
+			dialogs: dialogs.select{|candidate| candidate.active_player == player}.collect{|dialog|
+				{
+					id: dialog.id
+				}.merge!(eval(dialog.state))
+			},
 			phase: phase,
 			turn: turn,
 			event_index: event_index
