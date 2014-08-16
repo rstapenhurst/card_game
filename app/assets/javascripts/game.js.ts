@@ -114,7 +114,7 @@ module Events {
           for (var key in selected) {
             cards.push(key);
           }
-          game.trigger('dialog_respond_event', {dialog_id: event.id, cards: cards});
+          game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
           console.log("Do a noob");
           console.log(cards);
         }
