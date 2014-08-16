@@ -33,7 +33,33 @@ class Card {
 
 module Events {
 
+  export function event(raw: any) {
+    raw.get = function(key) {
+      if (raw.hasOwnProperty('all_log') && raw.all_log.hasOwnProperty(key))
+        return raw.all_log[key]
+      if (raw.hasOwnProperty('opponent_log') && raw.opponent_log.hasOwnProperty(key))
+        return raw.opponent_log[key]
+      if (raw.hasOwnProperty('player_log') && raw.player_log.hasOwnProperty(key))
+        return raw.player_log[key]
+      if (raw.hasOwnProperty('log_by_id') && raw.log_by_id.hasOwnProperty(key))
+        return raw.log_by_id[key]
+    };
+    raw.find = function(key) {
+      if (raw.hasOwnProperty('all_log') && raw.all_log.hasOwnProperty(key))
+        return {value: raw.all_log[key], scope: "all"};
+      if (raw.hasOwnProperty('opponent_log') && raw.opponent_log.hasOwnProperty(key))
+        return {value: raw.opponent_log[key], scope: "opponent"};
+      if (raw.hasOwnProperty('player_log') && raw.player_log.hasOwnProperty(key))
+        return {value: raw.player_log[key], scope: "player"};
+      if (raw.hasOwnProperty('log_by_id') && raw.log_by_id.hasOwnProperty(key))
+        return {value: raw.log_by_id[key], scope: "log_by_id"};
+    };
+  }
+
   export function handle(state: ClientState, raw) {
+
+    event(raw);
+
     switch (raw.type) {
       case 'phase_change':
         handlePhaseChange(state, <PhaseChange>raw);
@@ -68,17 +94,6 @@ module Events {
 
   function log(event: EventBase, message: string) {
     $("#game-log").prepend("<li>[" + (event != null ? ("" + event.event_index) : "***") + "] " + message + "</li>");
-  }
-
-  function maybe(event: any, key: string): any {
-    if (event.hasOwnProperty('all_log') && event.all_log.hasOwnProperty(key))
-      return {value: event.all_log[key], scope: "all"};
-    if (event.hasOwnProperty('opponent_log') && event.opponent_log.hasOwnProperty(key))
-      return {value: event.opponent_log[key], scope: "opponent"};
-    if (event.hasOwnProperty('player_log') && event.player_log.hasOwnProperty(key))
-      return {value: event.player_log[key], scope: "player"};
-
-    return null;
   }
 
   export declare class ChooseCards extends EventBase {
@@ -143,7 +158,7 @@ module Events {
   }
 
   function handleMoveCard(state: ClientState, event: MoveCard) {
-    var removed = maybe(event, "from_card");
+    var removed = event.find("from_card");
     var removed_card_name: string = removed && removed.value.template_name || "a card";
 
     if (removed && event.all_log.from_zone == "hand")
@@ -156,7 +171,7 @@ module Events {
       state.removeFromPlayArea(removed.value);
 
 
-    var added = maybe(event, "to_card");
+    var added = event.find("to_card");
     var added_card_name: string = added && added.value.template_name || "a card";
 
     if (event.all_log.to_zone == "play_area")
@@ -173,8 +188,15 @@ module Events {
     log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
   }
 
+  export declare class Maybe {
+    scope: string;
+    value: any;
+  }
+
   export declare class EventBase {
     event_index: number;
+    find(key:string) : Maybe;
+    get(key:string) : any;
   }
 }
 
@@ -379,7 +401,7 @@ class ClientState {
               selected['length']--;
               card.marked = false;
             } else {
-              if (FilterSelect[event.player_log.count_type](selected, card, event.player_log.count_value)) {
+              if (FilterSelect[event.get('count_type')](selected, card, event.get('count_value'))) {
                 selected['' + card.id] = true;
                 card.marked = true;
                 selected['length']++;
@@ -390,13 +412,13 @@ class ClientState {
           }
         },
         function(game) {
-          if (FilterComplete[event.player_log.count_type](selected, event.player_log.count_value)) {
+          if (FilterComplete[event.get('count_type')](selected, event.get('count_value'))) {
             var cards = [];
             delete selected['length']
             for (var key in selected) {
               cards.push(key);
             }
-            game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
+            game.trigger('dialog_respond_event', {dialog_id: event.get('id'), cards: cards});
 
             this.setFunctions(doNothing, doNothing);
           }
@@ -669,9 +691,9 @@ class CardGame {
 
     if (this.state.gameState.dialogs) {
       this.state.gameState.dialogs.forEach((dialog) => {
-        this.state.handleDialog({
-          player_log: dialog
-        });
+        var ev = { player_log: dialog };
+        Events.event(ev);
+        this.state.handleDialog(ev);
       });
     }
   }
