@@ -184,7 +184,14 @@ class Game < ActiveRecord::Base
 		return card
 	end
 
+	def has_dialog()
+		return dialogs.select{|d| d.stage > 0}.count() > 0
+	end
+
 	def advance_phase(events)
+		if (has_dialog)
+			return
+		end
 		if phase == 'init'
 			self.event_index = 0
       self.save
@@ -310,6 +317,10 @@ class Game < ActiveRecord::Base
 		end
 
 		if phase == 'buy'
+			return false
+		end
+
+		if phase == 'finished'
 			return false
 		end
 

@@ -53,7 +53,7 @@ class NoobController < WebsocketRails::BaseController
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 			card = Card.find(data['data']['card_id'])
 
-			if @game.is_legal(player, card)
+			if @game.is_legal(player, card) and !@game.has_dialog
 				events = []
 				@game.play_card(player, card, events)
 				broadcast_log(@game, player, events)
@@ -72,7 +72,7 @@ class NoobController < WebsocketRails::BaseController
 			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
 
-			if @game.is_players_turn(player) and @game.phase == 'buy'
+			if @game.is_players_turn(player) and @game.phase == 'buy' and !@game.has_dialog
 				events = []
 				@game.buy_card(player, supply, events)
 				broadcast_log(@game, player, events)
@@ -123,6 +123,12 @@ class NoobController < WebsocketRails::BaseController
 
 			user = current_user
 			player = Player.where(game_id: @game.id, user_id: user.id).take
+			if dialog.stage > 0 and dialog.active_player == player
+				special = dialog.special_type.constantize.new()
+				events = []
+				special.process_response(@game, player, dialog, data, events)
+				broadcast_log(@game, player, events)
+			end
 
 		end
 

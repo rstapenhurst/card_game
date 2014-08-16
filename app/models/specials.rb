@@ -1,7 +1,6 @@
 class Cellar
 
 	def execute(game, player, events)
-		puts "Execute cellar"
 		state = {
 			dialog_type: 'choose_cards',
 			source: 'hand',
@@ -9,13 +8,18 @@ class Cellar
 			count_value: 0,
 			prompt: "Discard any number of cards"
 		}
-		dialog = Dialog.create(game: game, active_player: player, stage: 0, special_type: 'cellar', state: state.to_s)
+		dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Cellar', state: state.to_s)
 		events << {
 			type: 'dialog',
 			player_log: {
 				id: dialog.id
 			}.merge!(state)
 		}
+	end
+
+	def process_response(game, player, dialog, data, events)
+		dialog.stage = 0
+		dialog.save
 	end
 
 end
