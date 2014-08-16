@@ -19,9 +19,6 @@ class CardPile < ActiveRecord::Base
 
 	end
 
-  def move_card(from, card)
-  end
-
 	def shuffle
 		index = 0
 		piles.shuffle.each do |pile|

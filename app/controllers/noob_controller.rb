@@ -126,7 +126,7 @@ class NoobController < WebsocketRails::BaseController
 			if dialog.stage > 0 and dialog.active_player == player
 				special = dialog.special_type.constantize.new()
 				events = []
-				special.process_response(@game, player, dialog, data, events)
+				special.process_response(@game, player, dialog, data['data'], events)
 				broadcast_log(@game, player, events)
 			end
 
