@@ -357,6 +357,19 @@ class Game < ActiveRecord::Base
 		player.set_actions(1)
 
 		self.turn += 1
+		events << {
+			type: "update_current_player",
+			all_log: {
+				key: 'id',
+				value: current_player.id
+			}
+		} << {
+			type: "update_current_player",
+			all_log: {
+				key: 'name',
+				value: current_player.name
+			}
+		}
 	end
 
 	def view_for(player)
