@@ -27,6 +27,8 @@ class Card {
   is_action: boolean;
   is_treasure: boolean;
   is_victory: boolean;
+
+  marked: boolean;
 }
 
 module Events {
@@ -41,6 +43,18 @@ module Events {
         break;
       case 'move_card':
         handleMoveCard(state, <MoveCard>raw);
+        break;
+      case 'dialog':
+        if (raw.hasOwnProperty('player_log')) {
+          switch (raw.player_log.dialog_type) {
+            case 'choose_cards':
+              handleChooseCards(state, <ChooseCards>raw);
+              break;
+            default:
+              log(null, JSON.stringify(raw));
+              break;
+          }
+        }
         break;
       case 'update_current_player':
         handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
@@ -65,6 +79,47 @@ module Events {
       return {value: event.player_log[key], scope: "player"};
 
     return null;
+  }
+
+  declare class ChooseCards extends EventBase {
+    player_log: {
+      id: number;
+      dialog_type: string;
+      source: string;
+      count_type: string;
+      count_value: number;
+      prompt: string;
+    }
+  }
+
+  function handleChooseCards(state: ClientState, event: ChooseCards) {
+    if (event.player_log.source == "hand") {
+      var selected = {};
+      state.setFunctions(
+        function(game, source, card) {
+          if (source == "hand") {
+            if (selected.hasOwnProperty('' + card.id)) {
+              delete selected['' + card.id]
+              card.marked = false;
+            } else {
+              selected['' + card.id] = true;
+              card.marked = true;
+            }
+
+            game.drawHand();
+          }
+        },
+        function(game) {
+          var cards = [];
+          for (var key in selected) {
+            cards.push(key);
+          }
+          //game.trigger('dialog_respond_event', {dialog_id: event.id, cards: cards);
+          console.log("Do a noob");
+          console.log(cards);
+        }
+      );
+    }
   }
 
   declare class CreateSupply extends EventBase {
@@ -189,14 +244,27 @@ class ClientDirtyBits {
   myDiscard: boolean;
   supplies: boolean;
   deck: boolean;
+
+  instructions: boolean;
+
 }
 
 class ClientState {
   gameState: GameState;
   dirty: ClientDirtyBits;
+  instructions: string;
+
+  clickCard: Function;
+  advance: Function;
 
   constructor() {
     this.dirty = new ClientDirtyBits();
+    this.instructions = "";
+  }
+
+  setInstructions(n: string) {
+    this.instructions = n;
+    this.dirty.instructions = true;
   }
 
   fullUpdate(newState) {
@@ -218,7 +286,7 @@ class ClientState {
   }
 
   removeFromHand(card: Card) {
-    for(var i = 0; i < this.gameState.player.hand.length; i++) {
+    for (var i = 0; i < this.gameState.player.hand.length; i++) {
       if (this.gameState.player.hand[i].id == card.id) {
         this.gameState.player.hand.splice(i, 1);
         break;
@@ -275,6 +343,11 @@ class ClientState {
     this.dirty.playArea = true;
   }
 
+  setFunctions(clickCardFunc: Function, advanceFunc: Function) {
+    this.clickCard = clickCardFunc;
+    this.advance = advanceFunc;
+  }
+
   createSupply = (supply) => {
     this.gameState.supplies.push(supply);
     this.dirty.supplies = true;
@@ -308,6 +381,40 @@ class Asset {
   }
 }
 
+class CursorSet {
+  discard: Phaser.Sprite;
+  normal: Phaser.Sprite;
+  play: Phaser.Sprite;
+
+  current: Phaser.Sprite;
+
+  setCursor = (newCursor) => {
+    if (newCursor != this.current) {
+      if (this.current)
+        this.current.visible = false;
+
+      this.current = newCursor;
+      this.current.visible = true;
+      this.current.bringToTop();
+    }
+  }
+
+  setNormal = () => {
+    this.setCursor(this.normal);
+  }
+  setDiscard = () => {
+    this.setCursor(this.discard);
+  }
+  setPlay = () => {
+    this.setCursor(this.play);
+  }
+
+  update = (game: Phaser.Game) => {
+    this.current.bringToTop();
+    this.current.position = game.input.mousePointer.position;
+  }
+}
+
 class CardGame {
 
   game: Phaser.Game;
@@ -324,15 +431,29 @@ class CardGame {
   turnIndicator: Phaser.Text;
   currentPlayerStatus: Phaser.Text;
 
+  cursors: CursorSet;
+
+  instructions: Phaser.Text;
+
+
   constructor() {
-    this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create });
+    this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create, update: this.update });
     this.state = new ClientState();
+    this.cursors = new CursorSet();
+  }
+
+  update = () => {
+    this.cursors.update(this.game);
   }
 
   preload = () => {
     this.game.load.image('card_face_empty', Asset.image('card_face_empty.png'));
+    this.game.load.image('card_face_selected', Asset.image('card_face_selected.png'));
     this.game.load.image('small_card_face_empty', Asset.image('small_card_face_empty.png'));
     this.game.load.image('button', Asset.image('button.png'));
+    this.game.load.image('cursor_discard', Asset.image('cursor_discard.png'));
+    this.game.load.image('cursor_normal', Asset.image('cursor_normal.png'));
+    this.game.load.image('cursor_play', Asset.image('cursor_play.png'));
   }
 
   drawPlayArea = (cards: Array<Card>, group: Phaser.Group) => {
@@ -390,7 +511,10 @@ class CardGame {
     }
   }
 
-  drawHand = (cards: Array<Card>, group: Phaser.Group) => {
+  drawHand = () => {
+    var cards = this.state.gameState.player.hand;
+    var group = this.handWidgets;
+
     group.removeAll(true, true);
     var sorted = cards.sort((a,b) => {
 
@@ -440,10 +564,15 @@ class CardGame {
       text.x = xpos + 30;
       text.y = 20;
 
-      var sprite = group.create(xpos, 0, 'card_face_empty');
+
+      var bg = 'card_face_empty';
+      if (x.marked) {
+        bg = 'card_face_selected'
+      }
+      var sprite = group.create(xpos, 0, bg);
       sprite.inputEnabled = true;
       sprite.events.onInputDown.add(() => {
-        this.trigger('card_play_event', {card_id: x.id});
+        this.clickCard('hand', x);
       }, this);
       group.add(text);
 
@@ -451,6 +580,14 @@ class CardGame {
 
     });
 
+  }
+
+  clickCard = (source, card) => {
+    if (this.state.clickCard) {
+      this.state.clickCard(this, source, card);
+    } else {
+      this.trigger('card_play_event', {card_id: card.id});
+    }
   }
 
   drawSupplies = () => {
@@ -477,7 +614,7 @@ class CardGame {
 
   onFullGameState = (data) => {
     this.state.fullUpdate(data.game);
-    this.drawHand(this.state.gameState.player.hand, this.handWidgets);
+    this.drawHand();
     this.drawPlayArea(this.state.gameState.play_area, this.playAreaWidgets);
     this.turnIndicator.setText("Player: " + this.state.gameState.current_player.name + " Phase: " + this.state.gameState.phase);
     this.currentPlayerStatus.setText("Money: " + this.state.gameState.current_player.money + " Buys: " + this.state.gameState.current_player.buys + " Actions: " + this.state.gameState.current_player.actions);
@@ -485,7 +622,6 @@ class CardGame {
     this.drawDiscard();
     this.drawDeck();
     this.drawSupplies();
-
 
 
   }
@@ -505,7 +641,10 @@ class CardGame {
   }
 
   doAdvance = () => {
-    this.trigger('phase_advance_event', null);
+    if (this.state.advance)
+      this.state.advance();
+    else
+      this.trigger('phase_advance_event', null);
   }
 
   onChat = (data) => {
@@ -538,8 +677,7 @@ class CardGame {
     }
 
     if (this.state.dirty.hand) {
-      console.log("redraw hand");
-      this.drawHand(this.state.gameState.player.hand, this.handWidgets);
+      this.drawHand();
       this.state.dirty.hand = false;
     }
 
@@ -552,12 +690,25 @@ class CardGame {
       this.currentPlayerStatus.setText("Money: " + this.state.gameState.current_player.money + " Buys: " + this.state.gameState.current_player.buys + " Actions: " + this.state.gameState.current_player.actions);
       this.state.dirty.phase = false;
     }
+
+    if (this.state.dirty.instructions) {
+      this.state.dirty.instructions = false;
+    }
   }
 
   create = () => {
     this.game.stage.backgroundColor = 0xefefef;
     this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
     this.currentPlayerStatus = this.game.add.text(0, 40, "Status: ???", {font: "14px Arial"});
+
+    this.instructions = new Phaser.Text(this.game, 0, 0, "", {font: "24px Arial"});
+
+    this.cursors.discard = this.game.add.sprite(0, 0, 'cursor_discard');
+    this.cursors.normal = this.game.add.sprite(0, 0, 'cursor_normal');
+    this.cursors.play = this.game.add.sprite(0, 0, 'cursor_play');
+    this.cursors.discard.visible = false;
+    this.cursors.play.visible = false;
+    this.cursors.setCursor(this.cursors.normal);
 
     var label = new Phaser.Text(this.game, 20, 10, "Advance", {font: "12px Arial", fill: "#ffff00"});
     var advanceButton = this.game.add.button(400, 0, 'button', () => { this.doAdvance(); });
