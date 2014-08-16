@@ -13,6 +13,7 @@ def make_card(name, cost, attribs)
 	attribs[:is_treasure] ||= 0
 	attribs[:is_victory] ||= 0
 	attribs[:is_action] ||= 0
+	attribs[:is_attack] ||= 0
 
 	CardAttribute.create(card_template: template, key: :cost, value: cost)
 
@@ -38,4 +39,4 @@ make_card("Festival", 5, { is_action: 1, actions: 2, money: 2, buys: 1})
 make_card("Woodcutter", 3, { is_action: 1, buys: 1, money: 2})
 
 make_card("Cellar", 2, { is_action: 1, actions: 1, special_Cellar: 0})
-make_card("Militia", 4, { is_action: 1, money: 2, special_AttackDiscardTo: 3})
+make_card("Militia", 4, { is_action: 1, is_attack: 1, money: 2, special_AttackDiscardTo: 3})

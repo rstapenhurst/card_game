@@ -30,6 +30,9 @@ class Game < ActiveRecord::Base
 
 	end
 
+	def hook_reactions(type, player, card, events)
+	end
+
 	def play_card(player, card, events)
 
 		player.play_area.add_card(card)
@@ -47,6 +50,13 @@ class Game < ActiveRecord::Base
       },
       player_log: { from_card: card.view }
     }
+
+		#if card.is_attack
+	#		puts "Some noob played an attack"
+#			if hook_reactions(:card_played, player, card, events)#
+			#	return
+			#end
+		#end
 
 		dirty_actions = dirty_money = dirty_buys = false
 		if card.is_action == 1
@@ -449,7 +459,7 @@ class Game < ActiveRecord::Base
 				id: trash.id,
 				size: trash.cards.count
 			}.merge!(trash.is_empty ? {} : { topcard: trash.top_card.view }),
-			dialogs: dialogs.select{|candidate| candidate.active_player == player}.collect{|dialog|
+			dialogs: dialogs.select{|candidate| candidate.active_player == player and candidate.stage > 0}.collect{|dialog|
 				{
 					id: dialog.id
 				}.merge!(eval(dialog.state))

@@ -12,7 +12,7 @@ class AttackDiscardTo
 				count_value: to_discard,
 				prompt: "Discard down to 3 cards"
 			}
-			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'AttackDiscardTo', state: state.to_s)
+			dialog = Dialog.create(game: game, active_player: opponent, stage: 1, special_type: 'AttackDiscardTo', state: state.to_s)
 
 			logs_by_id << {
 				owner_id: opponent.id,
