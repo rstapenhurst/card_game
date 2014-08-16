@@ -18,6 +18,13 @@ class Cellar
 	end
 
 	def process_response(game, player, dialog, data, events)
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
 		dialog.stage = 0
 		dialog.save
 	end
