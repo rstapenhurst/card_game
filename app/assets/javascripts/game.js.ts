@@ -71,15 +71,13 @@ module Events {
         handleMoveCard(state, <MoveCard>raw);
         break;
       case 'dialog':
-        if (raw.hasOwnProperty('player_log')) {
-          switch (raw.player_log.dialog_type) {
-            case 'complete':
-              state.setFunctions(null, null);
-              break;
-            default:
-              state.handleDialog(raw);
-              break;
-          }
+        switch (raw.get('dialog_type')) {
+          case 'complete':
+            state.setFunctions(null, null);
+            break;
+          default:
+            state.handleDialog(raw);
+            break;
         }
         break;
       case 'update_current_player':
