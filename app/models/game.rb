@@ -369,7 +369,26 @@ class Game < ActiveRecord::Base
 				key: 'name',
 				value: current_player.name
 			}
+		} << {
+			type: "update_current_player",
+			all_log: {
+				key: 'money',
+				value: 0
+			}
+		} << {
+			type: "update_current_player",
+			all_log: {
+				key: 'buys',
+				value: 1
+			}
+		} << {
+			type: "update_current_player",
+			all_log: {
+				key: 'actions',
+				value: 1
+			}
 		}
+
 	end
 
 	def view_for(player)
