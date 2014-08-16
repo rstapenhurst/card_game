@@ -47,6 +47,9 @@ module Events {
       case 'dialog':
         if (raw.hasOwnProperty('player_log')) {
           switch (raw.player_log.dialog_type) {
+            case 'complete':
+              state.setFunctions(null, null);
+              break;
             case 'choose_cards':
               handleChooseCards(state, <ChooseCards>raw);
               break;
@@ -92,6 +95,8 @@ module Events {
     }
   }
 
+  function doNothing() { }
+
   function handleChooseCards(state: ClientState, event: ChooseCards) {
     if (event.player_log.source == "hand") {
       var selected = {};
@@ -115,8 +120,8 @@ module Events {
             cards.push(key);
           }
           game.trigger('dialog_respond_event', {dialog_id: event.player_log.id, cards: cards});
-          console.log("Do a noob");
-          console.log(cards);
+
+          state.setFunctions(doNothing, doNothing);
         }
       );
     }
