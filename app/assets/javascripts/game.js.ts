@@ -114,7 +114,7 @@ module Events {
           for (var key in selected) {
             cards.push(key);
           }
-          //game.trigger('dialog_respond_event', {dialog_id: event.id, cards: cards);
+          game.trigger('dialog_respond_event', {dialog_id: event.id, cards: cards);
           console.log("Do a noob");
           console.log(cards);
         }
@@ -642,7 +642,7 @@ class CardGame {
 
   doAdvance = () => {
     if (this.state.advance)
-      this.state.advance();
+      this.state.advance(this);
     else
       this.trigger('phase_advance_event', null);
   }
