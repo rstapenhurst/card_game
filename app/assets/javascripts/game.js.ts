@@ -58,7 +58,6 @@ module Events {
 
   export function handle(state: ClientState, raw) {
 
-    console.log(raw);
     event(raw);
 
     switch (raw.type) {

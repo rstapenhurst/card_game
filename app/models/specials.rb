@@ -2,9 +2,12 @@ class AttackDiscardTo
 
 	def execute(game, player, events)
 		logs_by_id = []
-		game.players.select{|opponent| opponent.id != -1}.each do |opponent|
+		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
 			total_cards = opponent.hand.cards.count()
 			to_discard = total_cards - 3
+			if to_discard <= 0
+				next	
+			end
 			state = {
 				dialog_type: 'choose_cards',
 				source: 'hand',
