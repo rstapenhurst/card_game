@@ -292,7 +292,7 @@ class Game < ActiveRecord::Base
 				advance_phase(events)
 			end
 		elsif self.phase == 'treasure'
-			if !current_player.hand.cards.joins(:card_attributes).where('card_attributes.key == "is_treasure" AND card_attributes.value == 1').exists?
+			unless current_player.hand.cards.joins(:card_attributes).where('card_attributes.key == "is_treasure" AND card_attributes.value == 1').exists?
 				advance_phase(events)
 			end
 		elsif self.phase == 'buy'
