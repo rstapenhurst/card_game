@@ -9,6 +9,21 @@ class Special
 	def react_to_attack(game, card, player, events)
 		return true
 	end
+
+	def allow_reactions_from_player(game, player, events)
+		should_attack = true
+		player.revealed.cards.each do |card|
+			card.card_attributes.each do |attr|
+				if (attr.key =~ /^special_/)
+					class_name = attr.key
+					class_name.slice!('special_')
+					special = class_name.constantize.new()
+					should_attack &= special.react_to_attack(game, card, player, events)
+				end
+			end
+		end
+		return should_attack
+	end
 end
 
 class AvoidAttack < Special
@@ -152,6 +167,10 @@ class Curse < Special
 		curse_pile = game.supplies.select{|supply| supply.name == "Curse"}[0]
 		game.players.each do |opponent|
 			if opponent.id != player.id
+				should_attack = allow_reactions_from_player(game, opponent, events)
+				unless should_attack
+					next
+				end
 				curse = curse_pile.card_pile.top_card
 				opponent.discard.add_card(curse)
 				newTop = curse_pile.card_pile.top_card 
@@ -251,17 +270,7 @@ class AttackDiscardTo < Special
 	def execute(game, player, events)
 		logs_by_id = []
 		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
-			should_attack = true
-			opponent.revealed.cards.each do |card|
-				card.card_attributes.each do |attr|
-					if (attr.key =~ /^special_/)
-						class_name = attr.key
-						class_name.slice!('special_')
-						special = class_name.constantize.new()
-						should_attack &= special.react_to_attack(game, card, opponent, events)
-					end
-				end
-			end
+			should_attack = allow_reactions_from_player(game, opponent, events)
 			unless should_attack
 				next
 			end
