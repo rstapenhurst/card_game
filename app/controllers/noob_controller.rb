@@ -143,10 +143,10 @@ class NoobController < WebsocketRails::BaseController
 	def client_connected
 
 		user = current_user
-		puts "Connected. Sending message to games. User ID: #{user.id}."
 		Player.where(user_id: user.id).pluck(:id).each do |player_id|
 			player = Player.find(player_id)
-			puts "Player #{player.id} connected"
+			player.connected = true
+			player.save
 			game = Game.find(player.game_id)
 			events = []
 			events << {
@@ -165,10 +165,10 @@ class NoobController < WebsocketRails::BaseController
 	def client_disconnected
 
 		user = current_user
-		puts "Disconnected. Sending message to games. User ID: #{user.id}."
 		Player.where(user_id: user.id).pluck(:id).each do |player_id|
 			player = Player.find(player_id)
-			puts "Player #{player.id} disconnected"
+			player.connected = false
+			player.save
 			game = Game.find(player.game_id)
 			events = []
 			events << {

@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140817172144) do
+ActiveRecord::Schema.define(version: 20140817213344) do
 
   create_table "card_attributes", force: true do |t|
     t.integer  "card_template_id"
@@ -108,6 +108,7 @@ ActiveRecord::Schema.define(version: 20140817172144) do
     t.integer  "revealed_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.boolean  "connected"
   end
 
   add_index "players", ["game_id"], name: "index_players_on_game_id"

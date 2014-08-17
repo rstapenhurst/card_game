@@ -30,8 +30,6 @@ class Game < ActiveRecord::Base
 		player.set_buys(1)
 		player.set_actions(1)
 
-    WebsocketRails["game_updates_#{self.id}"].trigger("player_joined_event", view_of_opponent(player));
-
 	end
 
 	def hook_reactions(type, player, card, events)
@@ -466,19 +464,6 @@ class Game < ActiveRecord::Base
 
 	end
 
-  def view_of_opponent(opponent)
-    {
-      name: opponent.name,
-      id: opponent.id,
-      deck_size: opponent.deck.cards.count,
-      discard: {
-        id: opponent.discard.id,
-        size: opponent.discard.cards.count,
-      }.merge!(opponent.discard.is_empty ? {} : { top: opponent.discard.top_card.view }),
-      hand_size: opponent.hand.cards.count,
-    }
-  end
-
 	def view_for(player)
 		return :game => {
 			supplies: supplies.collect{|supply|
@@ -489,7 +474,17 @@ class Game < ActiveRecord::Base
 				}.merge!(supply.card_pile.is_empty ? {} : { top: supply.card_pile.top_card.view })
 			},
 			opponents: players.select{|candidate| candidate != player}.collect{|opponent|
-        view_of_opponent opponent
+				{
+					name: opponent.name,
+					id: opponent.id,
+					deck_size: opponent.deck.cards.count,
+					discard: {
+						id: opponent.discard.id,
+						size: opponent.discard.cards.count,
+					}.merge!(opponent.discard.is_empty ? {} : { top: opponent.discard.top_card.view }),
+					hand_size: opponent.hand.cards.count,
+					connected: opponent.connected
+				}
 			},
 			player: {
 				name: player.name,
