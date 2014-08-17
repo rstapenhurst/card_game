@@ -203,16 +203,17 @@ class Game < ActiveRecord::Base
 
 		add_supply('Village', 'kingdom', 10, events)
 		add_supply('Smithy', 'kingdom', 10, events)
-		#add_supply('Festival', 'kingdom', 10, events)
+		add_supply('Festival', 'kingdom', 10, events)
 		add_supply('Market', 'kingdom', 10, events)
 		add_supply('Laboratory', 'kingdom', 10, events)
 		add_supply('Cellar', 'kingdom', 10, events)
 		add_supply('Militia', 'kingdom', 10, events)
 		add_supply('Chapel', 'kingdom', 10, events)
-		#add_supply('Council Room', 'kingdom', 10, events)
+		add_supply('Council Room', 'kingdom', 10, events)
 		add_supply('Witch', 'kingdom', 10, events)
 		add_supply('Adventurer', 'kingdom', 10, events)
 		add_supply('Moat', 'kingdom', 10, events)
+		add_supply('Great Hall', 'kingdom', (players.count <= 2) ? 8 : 12, events)
 	end
 
 	def add_supply(name, type, count, events)
