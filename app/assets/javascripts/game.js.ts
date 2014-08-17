@@ -202,6 +202,7 @@ declare class FaceUpPile {
   size: number;
   top: Card;
   name: string;
+  supply_type: string;
 }
 
 declare class You {
@@ -266,6 +267,18 @@ class FilterSelect {
   }
 }
 
+class SupplyPiles {
+  kingdom: Array<FaceUpPile>;
+  treasure: Array<FaceUpPile>;
+  victory: Array<FaceUpPile>;
+
+  constructor() {
+    this.kingdom = [];
+    this.treasure = [];
+    this.victory = [];
+  }
+}
+
 class ClientState {
   gameState: GameState;
   dirty: ClientDirtyBits;
@@ -273,6 +286,8 @@ class ClientState {
 
   clickCard: Function;
   advance: Function;
+
+  supplies: SupplyPiles;
 
   constructor() {
     this.dirty = new ClientDirtyBits();
@@ -286,6 +301,11 @@ class ClientState {
 
   fullUpdate(newState) {
     this.gameState = newState;
+    this.supplies = new SupplyPiles();
+    this.gameState.supplies.forEach((x) => {
+      console.log(x.supply_type);
+      this.supplies[x.supply_type].push(x);
+    });
   }
 
   removeFromDeck(player: string, newSize: number) {
@@ -367,6 +387,7 @@ class ClientState {
 
   createSupply = (supply) => {
     this.gameState.supplies.push(supply);
+    this.supplies[supply.supply_type].push(supply);
     this.dirty.supplies = true;
   }
 
@@ -438,6 +459,7 @@ class Util {
   public static CardWidth: number = 128;
   public static CardPadded: number = 130;
   public static CardHeight: number = 196;
+  public static CardHeightPadded: number = 200;
   public static Padding: number = 10;
 }
 
@@ -679,26 +701,42 @@ class CardGame {
     }
   }
 
-  drawSupplies = () => {
-    this.supplyWidgets.removeAll(true, true);
-    var ypos = 0;
-    this.state.gameState.supplies.forEach((x) => {
-      var sprite = this.supplyWidgets.create(0, ypos, 'small_card_face_empty');
+  drawSupplyPile = (supply: FaceUpPile, xpos: number, ypos: number) => {
+      var sprite = this.supplyWidgets.create(xpos, ypos, 'small_card_face_empty');
 
-      if (x.top != null) {
-        var text = this.game.add.text(0, 0, x.top.template_name + "(" + x.size + ")\n cost: " + x.top.cost , {font: "10px Arial"});
-        text.x = 30;
+      if (supply.top != null) {
+        var text = this.game.add.text(0, 0, supply.top.template_name + "(" + supply.size + ")\n cost: " + supply.top.cost , {font: "10px Arial"});
+        text.x = xpos + 30;
         text.y = ypos + 20;
         this.supplyWidgets.add(text);
 
         sprite.inputEnabled = true;
         sprite.events.onInputDown.add(() => {
-          this.trigger('card_buy_event', {supply_id: x.id});
+          this.trigger('card_buy_event', {supply_id: supply.id});
         }, this);
       }
+  }
 
-      ypos = ypos + 68;
+  drawSupplies = () => {
+    this.supplyWidgets.removeAll(true, true);
+
+    var ypos = 0;
+    this.state.supplies.treasure.forEach((supply) => {
+      this.drawSupplyPile(supply, Util.CardPadded, ypos);
+      ypos += 68;
     });
+    ypos += 68;
+    this.state.supplies.victory.forEach((supply) => {
+      this.drawSupplyPile(supply, Util.CardPadded, ypos);
+      ypos += 68;
+    });
+
+    ypos = 0;
+    this.state.supplies.kingdom.forEach((supply) => {
+      this.drawSupplyPile(supply, 0, ypos);
+      ypos += 68;
+    });
+
   }
 
   onFullGameState = (data) => {
@@ -831,20 +869,20 @@ class CardGame {
     this.playAreaWidgets.y = this.game.height - 600;
 
     this.discardWidgets = this.game.add.group();
-    this.discardWidgets.x = this.game.width - (Util.CardPadded * 2);
-    this.discardWidgets.y = this.game.height - (Util.CardHeight * 2);
+    this.discardWidgets.x = this.game.width - (Util.CardPadded * 3);
+    this.discardWidgets.y = this.game.height - (Util.CardHeightPadded * 3);
 
     this.deckWidgets = this.game.add.group();
     this.deckWidgets.x = this.game.width - (Util.CardPadded * 3);
-    this.deckWidgets.y = this.game.height - (Util.CardHeight * 2);
+    this.deckWidgets.y = this.game.height - (Util.CardHeightPadded * 2);
 
     this.supplyWidgets = this.game.add.group();
-    this.supplyWidgets.x = this.game.width - Util.CardPadded;
+    this.supplyWidgets.x = this.game.width - (Util.CardPadded * 2);
     this.supplyWidgets.y = 10;
 
 		this.devWidgets = this.game.add.group();
-		this.devWidgets.x = this.supplyWidgets.x - 200;
-		this.devWidgets. y = 10
+		this.devWidgets.x = advanceButton.x + 180;
+		this.devWidgets. y = 0
 
     this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
