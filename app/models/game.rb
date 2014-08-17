@@ -157,7 +157,7 @@ class Game < ActiveRecord::Base
 		add_supply('Estate', 'victory', 10, events)
 		add_supply('Duchy', 'victory', 10, events)
 		add_supply('Province', 'victory', 10, events)
-		add_supply('Curse', 'victory', (players.count - 1) * 10, events)
+		add_supply('Curse', 'victory', (players.count == 1) ? 10 : ((players.count - 1) * 10), events)
 
 		add_supply('Village', 'kingdom', 10, events)
 		#add_supply('Smithy', 'kingdom', 10, events)

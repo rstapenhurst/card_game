@@ -489,12 +489,14 @@ class CardGame {
   dispatcher: WebSocketRails;
   channel: Channel;
   state: ClientState;
+	debugMode: Boolean;
 
   handWidgets: Phaser.Group;
   playAreaWidgets: Phaser.Group;
   supplyWidgets: Phaser.Group;
   discardWidgets: Phaser.Group;
   deckWidgets: Phaser.Group;
+  devWidgets: Phaser.Group;
 
   turnIndicator: Phaser.Text;
   currentPlayerStatus: Phaser.Text;
@@ -508,6 +510,7 @@ class CardGame {
     this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create, update: this.update });
     this.state = new ClientState();
     this.cursors = new CursorSet();
+		this.debugMode = false;
   }
 
   update = () => {
@@ -544,6 +547,24 @@ class CardGame {
     });
 
   }
+
+	drawDevOptions = () => {
+		this.devWidgets.removeAll(true, true);
+		var text;
+		if (this.debugMode) {
+			text = this.game.add.text(20, 10, "Debug Enabled", {font: "bold 12px Arial", fill: "#FFFF00"});
+		} else {
+			text = this.game.add.text(20, 10, "Enable Debug", {font: "12px Arial", fill: "#FFFF00"});
+		}
+    var debugButton = this.game.add.button(0, 0, 'button', () => { this.toggleDebug(); });
+		debugButton.addChild(text);
+		this.devWidgets.add(debugButton);
+	}
+
+	toggleDebug = () => {
+		this.debugMode = !this.debugMode;
+		this.drawDevOptions();
+	}
 
   drawDeck = () => { 
     this.deckWidgets.removeAll();
@@ -681,10 +702,14 @@ class CardGame {
   }
 
   onFullGameState = (data) => {
-    console.log(data);
+		if (this.debugMode) {
+			console.log("Full game state at: " + new Date());
+	    console.log(JSON.stringify(data));
+		}
     this.state.fullUpdate(data.game);
     this.drawHand();
     this.drawPlayArea(this.state.gameState.play_area, this.playAreaWidgets);
+		this.drawDevOptions();
     this.turnIndicator.setText("Player: " + this.state.gameState.current_player.name + " Phase: " + this.state.gameState.phase);
     this.currentPlayerStatus.setText("Money: " + this.state.gameState.current_player.money + " Buys: " + this.state.gameState.current_player.buys + " Actions: " + this.state.gameState.current_player.actions);
 
@@ -727,9 +752,17 @@ class CardGame {
   }
 
   onGameUpdate = (data) => {
+
+		if (this.debugMode) {
+			console.log("Game update at: " + new Date());
+			console.log(JSON.stringify(data));
+		}
+
     data.forEach((logEvent) => {
       Events.handle(this.state, logEvent);
     });
+
+		this.drawDevOptions();
 
     if (this.state.dirty.deck) {
       this.drawDeck();
@@ -808,6 +841,10 @@ class CardGame {
     this.supplyWidgets = this.game.add.group();
     this.supplyWidgets.x = this.game.width - Util.CardPadded;
     this.supplyWidgets.y = 10;
+
+		this.devWidgets = this.game.add.group();
+		this.devWidgets.x = this.supplyWidgets.x - 200;
+		this.devWidgets. y = 10
 
     this.dispatcher = new WebSocketRails(location.host + "/websocket", true);
 
