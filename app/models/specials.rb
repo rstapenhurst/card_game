@@ -1,5 +1,82 @@
 class Adventurer
 	def execute(game, player, events)
+		count = 0
+		while count < 2
+			if player.deck.is_empty
+				if (player.discard.is_empty)
+					break
+				end
+				player.discard.cards.each do |card|
+					player.deck.add_card(card)
+				end
+				events << {
+          type: 'recycle_deck',
+					all_log: {
+            player: player.name,
+            size: player.deck.cards.count
+          }
+				} 
+				player.deck.shuffle
+			end
+			next_card = player.deck.top_card
+			if next_card.has_attr("is_treasure") and next_card.is_treasure == 1
+				puts "#{next_card.name} is a treasure"
+				player.hand.add_card(next_card)
+				new_top = player.deck.top_card
+				events << {
+					type: "move_card",
+					all_log: {
+						from_player: player.id,
+						from_zone: "deck",
+						from_size: player.deck.cards.count,
+						from_card: next_card.view,
+						revealed: new_top && new_top.view,
+						to_player: player.id,
+						to_zone: "hand",
+						to_size: player.hand.cards.count,
+						to_card: next_card.view
+					}
+				}
+				count += 1
+			else
+				puts "#{next_card.name} is a noob card"
+				player.revealed.add_card(next_card)
+				new_top = player.deck.top_card
+				events << {
+					type: "move_card",
+					all_log: {
+						from_player: player.id,
+						from_zone: "deck",
+						from_size: player.deck.cards.count,
+						from_card: next_card.view,
+						revealed: new_top && new_top.view,
+						to_player: player.id,
+						to_zone: "revealed",
+						to_size: player.revealed.cards.count,
+						to_card: next_card.view
+					}
+				}
+			end
+		end
+		player.revealed.cards.each do |card|
+			player.discard.add_card(card)
+			new_top = player.revealed.top_card
+			events << {
+				type: "move_card",
+				all_log: {
+					from_player: player.id,
+					from_zone: "revealed",
+					from_size: player.revealed.cards.count,
+					from_card: card.view,
+					revealed: new_top && new_top.view,
+					to_player: player.id,
+					to_zone: "discard",
+					to_size: player.discard.cards.count,
+					to_card: card.view
+				}
+			}
+		end
+
 	end
 
 end

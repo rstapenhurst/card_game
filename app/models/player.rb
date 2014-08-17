@@ -3,6 +3,7 @@ class Player < ActiveRecord::Base
   belongs_to :user
 	belongs_to :deck, class_name:"CardPile", dependent: :destroy
 	belongs_to :hand, class_name:"CardPile", dependent: :destroy
+	belongs_to :revealed, class_name:"CardPile", dependent: :destroy
 	belongs_to :play_area, class_name:"CardPile", dependent: :destroy
 	belongs_to :discard, class_name:"CardPile", dependent: :destroy
 	has_many :player_attributes, dependent: :destroy
@@ -15,7 +16,6 @@ class Player < ActiveRecord::Base
     events << { type: "debug", all_log: "DRAWING YOU FUCKING NOIOBS" }
 		count.times() do
 			if deck.is_empty
-				q
 				if (discard.is_empty)
 					return
 				end
