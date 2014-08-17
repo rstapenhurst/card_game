@@ -159,10 +159,14 @@ module Events {
     var removed = event.find("from_card");
     var removed_card_name: string = removed && removed.value.template_name || "a card";
 
+    var pic = null;
+
     if (removed && event.all_log.from_zone == "hand")
       state.removeFromHand(removed.value);
-    else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0)
+    else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0) {
+      pic = 'buy';
       state.removeFromSupply(event.all_log.from_zone, event.all_log.revealed, event.all_log.from_size);
+    }
     else if (event.all_log.from_zone == "deck")
       state.removeFromDeck(event.all_log.from_player, event.all_log.from_size);
     else if (event.all_log.from_zone == 'play_area')
@@ -172,18 +176,29 @@ module Events {
     var added = event.find("to_card");
     var added_card_name: string = added && added.value.template_name || "a card";
 
-    if (event.all_log.to_zone == "play_area")
+    if (event.all_log.to_zone == "play_area") {
       state.addToPlayArea(added.value);
-    else if (event.all_log.to_zone == "hand")
+      pic = 'play';
+    }
+    else if (event.all_log.to_zone == "hand") {
       state.addToHand(event.all_log.to_player, added && added.value || null, event.all_log.to_size);
-    else if (event.all_log.to_zone == "discard")
+      pic = 'draw';
+    }
+    else if (event.all_log.to_zone == "discard") {
       state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
+      pic = 'discard';
+    }
     else if (event.all_log.to_zone == "supply")
       state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
 
-    var definite = added && added.value.name || removed && removed.value.name || 'a card';
+    var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
 
-    log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+    if (pic) {
+        log(event, "<span><img src=\"/assets/log_card_" + pic + ".png\"></span> <strong>" + event.all_log.to_player + "</strong>: " + definite);
+    } else {
+      log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+    }
+
   }
 
   export declare class Maybe {
