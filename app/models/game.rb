@@ -15,6 +15,7 @@ class Game < ActiveRecord::Base
 		hand = CardPile.create(name: "Hand(game: #{name}, user: #{user.name})")
 		discard = CardPile.create(name: "Discard (game: #{name}, user: #{user.name})")
 		play_area = CardPile.create(name: "Play Area (game: #{name}, user: #{user.name})")
+		revealed = CardPile.create(name: "Revealed Cards (game: #{name}, user: #{user.name})")
 		play_order = Player.where(game_id: id).count()
 		player = Player.create(
 			game_id: id,
@@ -23,6 +24,7 @@ class Game < ActiveRecord::Base
 			hand_id: hand.id,
 			discard_id: discard.id,
 			play_area_id: play_area.id,
+			revealed_id: revealed.id,
 			play_order: play_order)
 		player.set_money(0)
 		player.set_buys(1)
@@ -53,7 +55,7 @@ class Game < ActiveRecord::Base
       player_log: { from_card: card.view }
     }
 
-		if card.has_attr('is_attack') and card.is_attack
+		if card.has_attr('is_attack') and card.is_attack == 1
 			puts "Some noob played an attack"
 			if hook_reactions(:card_played, player, card, events)
 				return

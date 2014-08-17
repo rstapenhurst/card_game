@@ -44,4 +44,4 @@ make_card("Militia", 4, { is_action: 1, is_attack: 1, money: 2, special_AttackDi
 make_card("Chapel", 2, { is_action: 1, special_YouMayTrash: 4})
 make_card("Council Room", 5, { is_action: 1, cards: 4, buys: 1, special_CouncilRoom: 1})
 make_card("Witch", 5, { is_action: 1, is_attack: 1, cards: 2, special_Curse: 1})
-make_card("Adventurer", 5, { is_action: 1, special_Adventurer: 2})
+make_card("Adventurer", 6, { is_action: 1, special_Adventurer: 2})
