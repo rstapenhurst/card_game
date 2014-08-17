@@ -83,6 +83,10 @@ module Events {
             break;
         }
         break;
+      case 'recycle_deck':
+        state.recycleDeck(raw.all_log.player, raw.all_log.size);
+        log(null, 'card_recycle', '<strong>' + raw.all_log.player + '</strong>');
+        break;
       case 'update_current_player':
         handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
         break;
@@ -206,8 +210,10 @@ module Events {
 
     var pic = null;
 
-    if (removed && event.all_log.from_zone == "hand")
-      state.removeFromHand(removed.value);
+    var noLog = false;
+
+    if (event.all_log.from_zone == "hand")
+      state.removeFromHand(event.all_log.from_player, removed && removed.value);
     else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0) {
       pic = 'card_buy';
       state.removeFromSupply(event.all_log.from_zone, event.all_log.revealed, event.all_log.from_size);
@@ -216,6 +222,8 @@ module Events {
       state.removeFromDeck(event.all_log.from_player, event.all_log.from_size);
     else if (event.all_log.from_zone == 'play_area')
       state.removeFromPlayArea(removed.value);
+    else if (event.all_log.from_zone == 'revealed')
+      noLog = true;
 
 
     var added = event.find("to_card");
@@ -227,7 +235,10 @@ module Events {
     }
     else if (event.all_log.to_zone == "hand") {
       state.addToHand(event.all_log.to_player, added && added.value || null, event.all_log.to_size);
-      pic = 'card_draw';
+      if (added && added.scope == "player")
+        pic = 'you_card_draw';
+      else
+        pic = 'card_draw';
     }
     else if (event.all_log.to_zone == "discard") {
       state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
@@ -235,13 +246,17 @@ module Events {
     }
     else if (event.all_log.to_zone == "supply")
       state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
+    else if (event.all_log.to_zone == "revealed")
+      pic = 'card_reveal';
 
     var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
 
-    if (pic) {
-      appendLog(pic, event.all_log.to_player, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
-    } else {
-      log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+    if (!noLog) {
+      if (pic) {
+        appendLog(pic, event.all_log.to_player, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
+      } else {
+        log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+      }
     }
 
   }
@@ -273,6 +288,13 @@ declare class You {
   discard: FaceUpPile;
 }
 
+declare class Opponent {
+  name: string;
+  deck_size: number;
+  hand_size: number;
+  discard: FaceUpPile;
+}
+
 declare class Player {
   name: string;
 
@@ -286,6 +308,7 @@ declare class GameState {
   phase: string;
   current_player: Player;
   player: You;
+  opponents: Array<Opponent>;
   play_area: Array<Card>;
   supplies: Array<FaceUpPile>;
   dialogs: Array<any>;
@@ -299,9 +322,9 @@ class ClientDirtyBits {
   myDiscard: boolean;
   supplies: boolean;
   deck: boolean;
+  opponents: boolean;
 
   instructions: boolean;
-
 }
 
 class FilterComplete {
@@ -355,6 +378,11 @@ class ClientState {
     this.instructions = "";
   }
 
+  addOpponent(opp: Opponent) {
+    this.gameState.opponents.push(opp);
+    this.dirty.opponents = true;
+  }
+
   setInstructions(n: string) {
     this.instructions = n;
     this.dirty.instructions = true;
@@ -368,10 +396,22 @@ class ClientState {
     });
   }
 
+  findPlayer(name: string) {
+    for (var i = 0; i < this.gameState.opponents.length; i++) {
+      if (this.gameState.opponents[i].name == name) {
+        return this.gameState.opponents[i];
+      }
+    }
+    return null;
+  }
+
   removeFromDeck(player: string, newSize: number) {
     if (player == this.gameState.player.name) {
       this.gameState.player.deck_size = newSize;
       this.dirty.deck = true;
+    } else {
+      this.findPlayer(player).deck_size--;
+      this.dirty.opponents = true;
     }
   }
 
@@ -379,17 +419,25 @@ class ClientState {
     if (player == this.gameState.player.name) {
       this.gameState.player.hand.push(card);
       this.dirty.hand = true;
+    } else {
+      this.findPlayer(player).hand_size++;
+      this.dirty.opponents = true;
     }
   }
 
-  removeFromHand(card: Card) {
-    for (var i = 0; i < this.gameState.player.hand.length; i++) {
-      if (this.gameState.player.hand[i].id == card.id) {
-        this.gameState.player.hand.splice(i, 1);
-        break;
+  removeFromHand(player: string, card: Card) {
+    if (player == this.gameState.player.name) {
+      for (var i = 0; i < this.gameState.player.hand.length; i++) {
+        if (this.gameState.player.hand[i].id == card.id) {
+          this.gameState.player.hand.splice(i, 1);
+          break;
+        }
       }
+      this.dirty.hand = true;
+    } else {
+      this.findPlayer(player).hand_size--;
+      this.dirty.opponents = true;
     }
-    this.dirty.hand = true;
   }
 
   /*
@@ -422,6 +470,12 @@ class ClientState {
       this.gameState.player.discard.top = card;
 
       this.dirty.myDiscard = true;
+    } else {
+      var opp = this.findPlayer(player);
+      opp.discard.size = newSize;
+      opp.discard.top = card;
+
+      this.dirty.opponents = true;
     }
   }
 
@@ -451,8 +505,23 @@ class ClientState {
     this.dirty.supplies = true;
   }
 
-  updateCurrentPlayer = (key, value) => {
+  recycleDeck = (player: string, newDeckSize: number) => {
+    if (player == this.gameState.player.name) {
+      this.gameState.player.discard.top = null;
+      this.gameState.player.discard.size = 0;
+      this.gameState.player.deck_size = newDeckSize;
+      this.dirty.myDiscard = true;
+      this.dirty.deck = true;
+    } else {
+      var opp = this.findPlayer(player);
+      opp.discard.top = null;
+      opp.discard.size = 0;
+      opp.deck_size = newDeckSize;
+      this.dirty.opponents = true;
+    }
+  }
 
+  updateCurrentPlayer = (key, value) => {
     this.gameState.current_player[key] = value;
     this.dirty.currentPlayer = true;
   }
@@ -568,6 +637,23 @@ class CursorSet {
 
 function doNothing() { }
 
+var oppTitleStyle: any = { font: "14px Arial" };
+var oppTextStyle: any = { font: "10px Arial" };
+
+function textLine(group: Phaser.Group, game: Phaser.Game, xpos: number, ypos: number, keyText: string, valueText: string, style: any) {
+  var text = game.add.text(0, 0, keyText, style);
+  text.x = xpos;
+  text.y = ypos;
+  group.add(text);
+
+  if (valueText) {
+    text = game.add.text(0, 0, valueText, style);
+    text.x = xpos + 50;
+    text.y = ypos;
+    group.add(text);
+  }
+}
+
 class CardGame {
 
   game: Phaser.Game;
@@ -589,6 +675,8 @@ class CardGame {
   cursors: CursorSet;
 
   instructions: Phaser.Text;
+
+  opponentsWidgets: Phaser.Group;
 
 
   constructor() {
@@ -683,6 +771,24 @@ class CardGame {
 
       this.discardWidgets.add(text);
     }
+  }
+
+
+
+  drawOpponents = () => {
+    var xpos = 0;
+    this.opponentsWidgets.removeAll(true, true);
+
+    this.state.gameState.opponents.forEach((opp) => {
+      textLine(this.opponentsWidgets, this.game, xpos, 20, opp.name, null, oppTitleStyle);
+      textLine(this.opponentsWidgets, this.game, xpos, 40, 'Hand#', '' + opp.hand_size, oppTextStyle);
+      textLine(this.opponentsWidgets, this.game, xpos, 60, 'Deck#', '' + opp.deck_size, oppTextStyle);
+      textLine(this.opponentsWidgets, this.game, xpos, 80, 'Discard#', '' + opp.discard.size, oppTextStyle);
+      textLine(this.opponentsWidgets, this.game, xpos, 100, 'Discard', opp.discard.top && opp.discard.top.template_name, oppTextStyle);
+
+      xpos += 150;
+
+    });
   }
 
   drawHand = () => {
@@ -832,6 +938,8 @@ class CardGame {
     this.drawDeck();
     this.drawSupplies();
 
+    this.drawOpponents();
+
     if (this.state.gameState.dialogs) {
       this.state.gameState.dialogs.forEach((dialog) => {
         var ev = { player_log: dialog };
@@ -880,6 +988,11 @@ class CardGame {
     Events.flushLog();
 
 		this.drawDevOptions();
+
+    if (this.state.dirty.opponents) {
+      this.drawOpponents();
+      this.state.dirty.opponents = false;
+    }
 
     if (this.state.dirty.deck) {
       this.drawDeck();
@@ -942,13 +1055,17 @@ class CardGame {
     var advanceButton = this.game.add.button(400, 0, 'button', () => { this.doAdvance(); });
     advanceButton.addChild(label);
 
+    this.opponentsWidgets = this.game.add.group();
+    this.opponentsWidgets.x = 10;
+    this.opponentsWidgets.y = 100;
+
     this.handWidgets = this.game.add.group();
     this.handWidgets.x = 10;
     this.handWidgets.y = this.game.height - 200;
 
     this.playAreaWidgets = this.game.add.group();
     this.playAreaWidgets.x = 10;
-    this.playAreaWidgets.y = this.game.height - 600;
+    this.playAreaWidgets.y = this.game.height - 500;
 
     this.discardWidgets = this.game.add.group();
     this.discardWidgets.x = this.game.width - (Util.CardPadded * 3);
@@ -972,6 +1089,10 @@ class CardGame {
     this.channel.bind('full_game_state_' + player_id, (data) => {this.onFullGameState(data);});
     this.channel.bind('update_game_state_' + player_id, (data) => {this.onGameUpdate(data);});
     this.channel.bind('game_chat_event', (data) => {this.onChat(data);});
+    this.channel.bind('player_joined_event', (data) => {
+      this.state.addOpponent(data);
+      this.drawOpponents();
+    });
 
 
     this.trigger('game_fetch_event', null);
