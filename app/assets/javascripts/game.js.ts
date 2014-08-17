@@ -93,19 +93,19 @@ module Events {
   }
 
   function log(event: EventBase, img: string, message: string) {
-    var build = "<li>";
+    var build = "<div class=\"log-line\">";
 
     if (event) {
       build += "[" + event.event_index + "] "
     }
 
     if (img) {
-      build += "<span><img src=\"/assets/log_" + img + ".png\"></span>";
+      build += "<img class=\"log-icon\" src=\"/assets/log_" + img + ".png\">";
     }
 
-    build += message;
+    build += "<span class=\"log-text\">" + message + "</span>";
 
-    build += "</li>";
+    build += "</div>";
 
     outstanding_log.push(build);
   }
@@ -154,7 +154,7 @@ module Events {
 
 
   function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
-    log(event, null, "[" + event.all_log.key + "]  -> " + event.all_log.value);
+    appendLog('update', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
     state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
   }
 
@@ -185,6 +185,18 @@ module Events {
 
   var currentLogType: string;
   var currentLog: string = "";
+
+  function appendLog(type: string, initial: string, message: string) {
+    if (currentLogType == type) {
+      currentLog += " " + message;
+    } else {
+      if (currentLog.length) {
+        log(null, currentLogType, currentLog);
+      }
+      currentLogType = type;
+      currentLog = initial + message;
+    }
+  }
 
   function handleMoveCard(state: ClientState, event: MoveCard) {
     var removed = event.find("from_card");
@@ -225,15 +237,7 @@ module Events {
     var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
 
     if (pic) {
-      if (currentLogType == pic) {
-        currentLog += " " + definite;
-      } else {
-        if (currentLog.length) {
-          log(null, currentLogType, currentLog);
-        }
-        currentLogType = pic;
-        currentLog = "<strong>" + event.all_log.to_player + "</strong>: " + definite;
-      }
+      appendLog(pic, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
     } else {
       log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
     }
