@@ -247,7 +247,10 @@ class FilterComplete {
     return cards.length == num;
   }
   static at_least(cards: any, num: number) {
-    return cards.length > num;
+    return cards.length >= num;
+  }
+  static at_most(cards: any, num: number) {
+		return cards.length <= num;
   }
 }
 
@@ -257,6 +260,9 @@ class FilterSelect {
   }
   static at_least(cards: any, card: Card, num: number) {
     return true;
+  }
+  static at_most(cards: any, card: Card, num: number) {
+    return cards.length < num;
   }
 }
 

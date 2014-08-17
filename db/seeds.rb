@@ -26,6 +26,7 @@ end
 make_card("Province", 8, { is_victory: 1, victory_points: 6})
 make_card("Duchy", 5, { is_victory: 1, victory_points: 3})
 make_card("Estate", 2, { is_victory: 1, victory_points: 1})
+make_card("Curse", 0, { victory_points: -1 })
 	
 make_card("Copper", 0, { is_treasure: 1, money: 1})
 make_card("Silver", 3,{  is_treasure: 1, money: 2})
@@ -40,3 +41,7 @@ make_card("Woodcutter", 3, { is_action: 1, buys: 1, money: 2})
 
 make_card("Cellar", 2, { is_action: 1, actions: 1, special_Cellar: 0})
 make_card("Militia", 4, { is_action: 1, is_attack: 1, money: 2, special_AttackDiscardTo: 3})
+make_card("Chapel", 2, { is_action: 1, special_YouMayTrash: 4})
+make_card("Council Room", 5, { is_action: 1, cards: 4, buys: 1, special_CouncilRoom: 1})
+make_card("Witch", 5, { is_action: 1, is_attack: 1, cards: 2, special_Curse: 1})
+make_card("Adventurer", 5, { is_action: 1, special_Adventurer: 2})
