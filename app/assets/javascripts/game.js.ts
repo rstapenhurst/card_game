@@ -154,7 +154,7 @@ module Events {
 
 
   function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
-    appendLog('update', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
+    appendLog('update', '', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
     state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
   }
 
@@ -183,17 +183,19 @@ module Events {
     }
   }
 
+  var currentLogKey: string;
   var currentLogType: string;
   var currentLog: string = "";
 
-  function appendLog(type: string, initial: string, message: string) {
-    if (currentLogType == type) {
+  function appendLog(type: string, key: string, initial: string, message: string) {
+    if (currentLogType == type && key == currentLogKey) {
       currentLog += " " + message;
     } else {
       if (currentLog.length) {
         log(null, currentLogType, currentLog);
       }
       currentLogType = type;
+      currentLogKey = key;
       currentLog = initial + message;
     }
   }
@@ -237,7 +239,7 @@ module Events {
     var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
 
     if (pic) {
-      appendLog(pic, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
+      appendLog(pic, event.all_log.to_player, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
     } else {
       log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
     }
