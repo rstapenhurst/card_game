@@ -457,6 +457,7 @@ class ClientState {
 
   updatePhase = (newPhase) => {
     this.gameState.phase = newPhase;
+    this.dirty.hand = true; //Note: Dirty the hand so we force a re-sort since the hand sorting is per-phase, this should really only happen if it's your turn but yolo
     this.dirty.phase = true;
   }
   
