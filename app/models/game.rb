@@ -188,6 +188,7 @@ class Game < ActiveRecord::Base
       all_log: {
         id: supply.id,
         top: card_pile.top_card.view,
+				supply_type: supply.supply_type,
         size: count
       }
     }
@@ -425,7 +426,8 @@ class Game < ActiveRecord::Base
 			supplies: supplies.collect{|supply|
 				{
 					id: supply.id,
-					size: supply.cards.count
+					size: supply.cards.count,
+					supply_type: supply.supply_type
 				}.merge!(supply.card_pile.is_empty ? {} : { top: supply.card_pile.top_card.view })
 			},
 			opponents: players.select{|candidate| candidate != player}.collect{|opponent|
