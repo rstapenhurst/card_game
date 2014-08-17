@@ -73,6 +73,7 @@ module Events {
       case 'dialog':
         switch (raw.get('dialog_type')) {
           case 'complete':
+            state.setInstructions('');
             state.setFunctions(null, null);
             break;
           default:
@@ -402,6 +403,7 @@ class ClientState {
   }
   
   handleDialog(raw: any) {
+    this.setInstructions(raw.get('prompt'));
     switch (raw.get('dialog_type')) {
       case 'choose_cards':
         this.handleChooseCards(<Events.ChooseCards>raw);
@@ -442,6 +444,7 @@ class ClientState {
               cards.push(key);
             }
             game.trigger('dialog_respond_event', {dialog_id: event.get('id'), cards: cards});
+            this.setInstructions('Waiting for players...');
 
             this.setFunctions(doNothing, doNothing);
           }
@@ -731,7 +734,20 @@ class CardGame {
     });
 
     ypos = 0;
-    this.state.supplies.kingdom.forEach((supply) => {
+    this.state.supplies.kingdom.sort(function(a,b) {
+      if (a.top) {
+        if (b.top)
+          return a.top.cost - b.top.cost;
+        else
+          return -1;
+      } else {
+        if (b.top)
+          return 1;
+        else
+          return 0;
+      }
+
+    }).forEach((supply) => {
       this.drawSupplyPile(supply, 0, ypos);
       ypos += 68;
     });
@@ -837,6 +853,7 @@ class CardGame {
     }
 
     if (this.state.dirty.instructions) {
+      this.instructions.setText(this.state.instructions);
       this.state.dirty.instructions = false;
     }
   }
@@ -846,7 +863,9 @@ class CardGame {
     this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
     this.currentPlayerStatus = this.game.add.text(0, 40, "Status: ???", {font: "14px Arial"});
 
-    this.instructions = new Phaser.Text(this.game, 0, 0, "", {font: "24px Arial"});
+    this.instructions = new Phaser.Text(this.game, 0, 0, "", {font: "32px Arial", fill: "#0000aa"});
+    this.instructions.position.set(100, 200);
+    this.game.stage.addChild(this.instructions);
 
     this.cursors.discard = this.game.add.sprite(0, 0, 'cursor_discard');
     this.cursors.normal = this.game.add.sprite(0, 0, 'cursor_normal');
@@ -889,6 +908,7 @@ class CardGame {
     this.channel.bind('full_game_state_' + player_id, (data) => {this.onFullGameState(data);});
     this.channel.bind('update_game_state_' + player_id, (data) => {this.onGameUpdate(data);});
     this.channel.bind('game_chat_event', (data) => {this.onChat(data);});
+
 
     this.trigger('game_fetch_event', null);
   }
