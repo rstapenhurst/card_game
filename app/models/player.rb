@@ -12,25 +12,29 @@ class Player < ActiveRecord::Base
 		return user.name
 	end
 
+	def predraw(events)
+		if deck.is_empty
+			if (discard.is_empty)
+				return
+			end
+			discard.cards.each do |card|
+				deck.add_card(card)
+			end
+			events << {
+				type: 'recycle_deck',
+				all_log: {
+					player: self.name,
+					size: deck.cards.count
+				}
+			} 
+			deck.shuffle
+		end
+	end
+
 	def draw(count, events)
     events << { type: "debug", all_log: "DRAWING YOU FUCKING NOIOBS" }
 		count.times() do
-			if deck.is_empty
-				if (discard.is_empty)
-					return
-				end
-				discard.cards.each do |card|
-					deck.add_card(card)
-				end
-				events << {
-          type: 'recycle_deck',
-					all_log: {
-            player: self.name,
-            size: deck.cards.count
-          }
-				} 
-				deck.shuffle
-			end
+			predraw(events)
 			card = deck.top_card
 			hand.add_card(card)
 

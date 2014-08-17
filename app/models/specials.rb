@@ -2,25 +2,12 @@ class Adventurer
 	def execute(game, player, events)
 		count = 0
 		while count < 2
+			player.predraw(events)
 			if player.deck.is_empty
-				if (player.discard.is_empty)
-					break
-				end
-				player.discard.cards.each do |card|
-					player.deck.add_card(card)
-				end
-				events << {
-          type: 'recycle_deck',
-					all_log: {
-            player: player.name,
-            size: player.deck.cards.count
-          }
-				} 
-				player.deck.shuffle
+				break
 			end
 			next_card = player.deck.top_card
 			if next_card.has_attr("is_treasure") and next_card.is_treasure == 1
-				puts "#{next_card.name} is a treasure"
 				player.hand.add_card(next_card)
 				new_top = player.deck.top_card
 				events << {
@@ -39,7 +26,6 @@ class Adventurer
 				}
 				count += 1
 			else
-				puts "#{next_card.name} is a noob card"
 				player.revealed.add_card(next_card)
 				new_top = player.deck.top_card
 				events << {
