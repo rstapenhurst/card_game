@@ -303,7 +303,6 @@ class ClientState {
     this.gameState = newState;
     this.supplies = new SupplyPiles();
     this.gameState.supplies.forEach((x) => {
-      console.log(x.supply_type);
       this.supplies[x.supply_type].push(x);
     });
   }
