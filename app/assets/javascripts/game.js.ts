@@ -403,9 +403,9 @@ class ClientState {
   }
   
   handleDialog(raw: any) {
-    this.setInstructions(raw.get('prompt'));
     switch (raw.get('dialog_type')) {
       case 'choose_cards':
+        this.setInstructions(raw.get('prompt'));
         this.handleChooseCards(<Events.ChooseCards>raw);
         break;
       default:
