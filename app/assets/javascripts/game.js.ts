@@ -90,6 +90,14 @@ module Events {
       case 'update_current_player':
         handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
         break;
+			case 'player_connected':
+				state.playerConnected(raw.all_log.name, true);
+				log(null, null, '<strong>' + raw.all_log.name + ' connected</strong>');
+				break;
+			case 'player_disconnected':
+				state.playerConnected(raw.all_log.name, false);
+				log(null, null, '<strong>' + raw.all_log.name + ' disconnected</strong>');
+				break;
       default:
         log(null, null, JSON.stringify(raw));
         break;
@@ -293,6 +301,7 @@ declare class Opponent {
   deck_size: number;
   hand_size: number;
   discard: FaceUpPile;
+  connected: boolean;
 }
 
 declare class Player {
@@ -520,6 +529,12 @@ class ClientState {
       this.dirty.opponents = true;
     }
   }
+
+	playerConnected = (player: string, connected: boolean) => {
+		var opponent = this.findPlayer(player);
+		opponent.connected = connected;
+		this.dirty.opponents = true;
+	}
 
   updateCurrentPlayer = (key, value) => {
     this.gameState.current_player[key] = value;
@@ -780,7 +795,7 @@ class CardGame {
     this.opponentsWidgets.removeAll(true, true);
 
     this.state.gameState.opponents.forEach((opp) => {
-      textLine(this.opponentsWidgets, this.game, xpos, 20, opp.name, null, oppTitleStyle);
+      textLine(this.opponentsWidgets, this.game, xpos, 20, opp.name + (opp.connected ? "" : "(disconnected)"), null, oppTitleStyle);
       textLine(this.opponentsWidgets, this.game, xpos, 40, 'Hand#', '' + opp.hand_size, oppTextStyle);
       textLine(this.opponentsWidgets, this.game, xpos, 60, 'Deck#', '' + opp.deck_size, oppTextStyle);
       textLine(this.opponentsWidgets, this.game, xpos, 80, 'Discard#', '' + opp.discard.size, oppTextStyle);
