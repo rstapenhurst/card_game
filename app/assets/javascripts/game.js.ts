@@ -186,7 +186,7 @@ module Events {
     }
     else if (event.all_log.to_zone == "discard") {
       state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
-      pic = 'discard';
+      pic = pic || 'discard';
     }
     else if (event.all_log.to_zone == "supply")
       state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
