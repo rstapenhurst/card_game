@@ -740,8 +740,9 @@ class CardGame {
       var bg = 'card_face_empty';
       if (x.marked) {
         bg = 'card_face_selected'
+        text.y -= 80;
       }
-      var sprite = group.create(xpos, 0, bg);
+      var sprite = group.create(xpos, x.marked ? -80 : 0, bg);
       sprite.inputEnabled = true;
       sprite.events.onInputDown.add(() => {
         this.clickCard('hand', x);
