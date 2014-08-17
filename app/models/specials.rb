@@ -242,7 +242,7 @@ class YouMayTrash < Special
 					from_player: player.name,
 					from_zone: "hand",
 					from_size: player.hand.cards.count,
-					to_player: player.name,
+					to_player: "<system>",
 					to_zone: "trash",
 					to_size: game.trash.cards.count,
 					to_card: card.view
