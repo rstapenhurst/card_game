@@ -33,6 +33,8 @@ class Card {
 
 module Events {
 
+  var outstanding_log: Array<string> = [];
+
   export function event(raw: any) {
     raw.get = function(key) {
       if (raw.hasOwnProperty('all_log') && raw.all_log.hasOwnProperty(key))
@@ -85,13 +87,27 @@ module Events {
         handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
         break;
       default:
-        log(null, JSON.stringify(raw));
+        log(null, null, JSON.stringify(raw));
         break;
     }
   }
 
-  function log(event: EventBase, message: string) {
-    $("#game-log").prepend("<li>[" + (event != null ? ("" + event.event_index) : "***") + "] " + message + "</li>");
+  function log(event: EventBase, img: string, message: string) {
+    var build = "<li>";
+
+    if (event) {
+      build += "[" + event.event_index + "] "
+    }
+
+    if (img) {
+      build += "<span><img src=\"/assets/log_" + img + ".png\"></span>";
+    }
+
+    build += message;
+
+    build += "</li>";
+
+    outstanding_log.push(build);
   }
 
   export declare class ChooseCards extends EventBase {
@@ -113,7 +129,7 @@ module Events {
   }
 
   function handleCreateSupply(state: ClientState, event: CreateSupply) {
-    log(event, "Create supply [" + event.all_log.top.template_name + "], size: " + event.all_log.size);
+    log(event, null, "Create supply [" + event.all_log.top.template_name + "], size: " + event.all_log.size);
     state.createSupply(event.all_log);
   }
 
@@ -124,9 +140,21 @@ module Events {
     }
   }
 
+  export function flushLog() {
+    if (currentLog.length) {
+      log(null, currentLogType, currentLog);
+    }
+    currentLogType = null;
+    currentLog = "";
+    outstanding_log.forEach(function(line) {
+      $("#game-log").prepend(line);
+    });
+    outstanding_log = [];
+  }
+
 
   function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
-    log(event, "[" + event.all_log.key + "]  -> " + event.all_log.value);
+    log(event, null, "[" + event.all_log.key + "]  -> " + event.all_log.value);
     state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
   }
 
@@ -137,7 +165,7 @@ module Events {
   }
 
   function handlePhaseChange(state: ClientState, event: PhaseChange) {
-    log(event, "Changing phase to: " + event.all_log.new_phase);
+    log(null, "phase_change", event.all_log.new_phase);
     state.updatePhase(event.all_log.new_phase);
   }
 
@@ -155,6 +183,9 @@ module Events {
     }
   }
 
+  var currentLogType: string;
+  var currentLog: string = "";
+
   function handleMoveCard(state: ClientState, event: MoveCard) {
     var removed = event.find("from_card");
     var removed_card_name: string = removed && removed.value.template_name || "a card";
@@ -164,7 +195,7 @@ module Events {
     if (removed && event.all_log.from_zone == "hand")
       state.removeFromHand(removed.value);
     else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0) {
-      pic = 'buy';
+      pic = 'card_buy';
       state.removeFromSupply(event.all_log.from_zone, event.all_log.revealed, event.all_log.from_size);
     }
     else if (event.all_log.from_zone == "deck")
@@ -178,15 +209,15 @@ module Events {
 
     if (event.all_log.to_zone == "play_area") {
       state.addToPlayArea(added.value);
-      pic = 'play';
+      pic = 'card_play';
     }
     else if (event.all_log.to_zone == "hand") {
       state.addToHand(event.all_log.to_player, added && added.value || null, event.all_log.to_size);
-      pic = 'draw';
+      pic = 'card_draw';
     }
     else if (event.all_log.to_zone == "discard") {
       state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
-      pic = pic || 'discard';
+      pic = pic || 'card_discard';
     }
     else if (event.all_log.to_zone == "supply")
       state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
@@ -194,9 +225,17 @@ module Events {
     var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
 
     if (pic) {
-        log(event, "<span><img src=\"/assets/log_card_" + pic + ".png\"></span> <strong>" + event.all_log.to_player + "</strong>: " + definite);
+      if (currentLogType == pic) {
+        currentLog += " " + definite;
+      } else {
+        if (currentLog.length) {
+          log(null, currentLogType, currentLog);
+        }
+        currentLogType = pic;
+        currentLog = "<strong>" + event.all_log.to_player + "</strong>: " + definite;
+      }
     } else {
-      log(event, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
+      log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
     }
 
   }
@@ -829,6 +868,8 @@ class CardGame {
     data.forEach((logEvent) => {
       Events.handle(this.state, logEvent);
     });
+
+    Events.flushLog();
 
 		this.drawDevOptions();
 
