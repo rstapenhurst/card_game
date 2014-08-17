@@ -33,7 +33,42 @@ class Game < ActiveRecord::Base
 	end
 
 	def hook_reactions(type, player, card, events)
-		print "React now"
+		if type == :attack_played
+			reaction_occurring = false
+			logs_by_id = []
+			players.each do |opponent|
+				if opponent.id != player.id
+					reaction_cards = []
+					opponent.hand.cards.each do |card|
+						if card.has_attr("is_reaction") and card.is_reaction == 1
+							reaction_cards << card
+						end
+					end
+					if reaction_cards.any?
+						reaction_occurring = true
+						state = {
+							dialog_type: 'choose_cards',
+							source: 'hand',
+							count_type: 'at_most',
+							count_value: 1,
+							prompt: "Choose a reaction card"
+						}
+						dialog = Dialog.create(game: self, active_player: opponent, stage: 1, special_type: 'AvoidAttack', state: state.to_s)
+						logs_by_id << {
+							owner_id: opponent.id,
+							id: dialog.id
+						}.merge!(state)
+					end
+				end
+			end
+			if logs_by_id.any?
+				events << {
+					type: 'dialog',
+					logs_by_id: logs_by_id
+				}
+			end
+			return reaction_occurring
+		end
 		return false
 	end
 
@@ -56,11 +91,16 @@ class Game < ActiveRecord::Base
     }
 
 		if card.has_attr('is_attack') and card.is_attack == 1
-			puts "Some noob played an attack"
-			if hook_reactions(:card_played, player, card, events)
+			if hook_reactions(:attack_played, player, card, events)
 				return
 			end
 		end
+
+		apply_card_actions(player, card, events)
+
+	end
+
+	def apply_card_actions(player, card, events)
 
 		dirty_actions = dirty_money = dirty_buys = false
 		if card.is_action == 1
@@ -163,15 +203,16 @@ class Game < ActiveRecord::Base
 
 		add_supply('Village', 'kingdom', 10, events)
 		add_supply('Smithy', 'kingdom', 10, events)
-		add_supply('Festival', 'kingdom', 10, events)
+		#add_supply('Festival', 'kingdom', 10, events)
 		add_supply('Market', 'kingdom', 10, events)
 		add_supply('Laboratory', 'kingdom', 10, events)
 		add_supply('Cellar', 'kingdom', 10, events)
-		#add_supply('Militia', 'kingdom', 10, events)
+		add_supply('Militia', 'kingdom', 10, events)
 		add_supply('Chapel', 'kingdom', 10, events)
-		add_supply('Council Room', 'kingdom', 10, events)
+		#add_supply('Council Room', 'kingdom', 10, events)
 		add_supply('Witch', 'kingdom', 10, events)
 		add_supply('Adventurer', 'kingdom', 10, events)
+		add_supply('Moat', 'kingdom', 10, events)
 	end
 
 	def add_supply(name, type, count, events)

@@ -32,7 +32,6 @@ class Player < ActiveRecord::Base
 	end
 
 	def draw(count, events)
-    events << { type: "debug", all_log: "DRAWING YOU FUCKING NOIOBS" }
 		count.times() do
 			predraw(events)
 			card = deck.top_card

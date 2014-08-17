@@ -1,4 +1,83 @@
-class Adventurer
+class Special
+
+	def execute(game, player, events)
+	end
+
+	def process_response(game, player, dialog, data, events)
+	end
+
+	def react_to_attack(game, card, player, events)
+		return true
+	end
+end
+
+class AvoidAttack < Special
+
+	def execute(game, player, events)
+	end
+
+	def process_response(game, player, dialog, data, events)
+
+		card_count = 0
+		data['cards'].each do |card_id|
+			card = Card.find(card_id)
+			if player.hand.cards.where(id: card.id).count == 0
+				return
+			end
+			card_count += 1
+			player.revealed.add_card(card)
+			events << {
+				type: "move_card",
+				all_log: {
+					from_player: player.name,
+					from_zone: "hand",
+					from_size: player.hand.cards.count,
+					to_player: player.name,
+					to_zone: "revealed",
+					to_size: player.revealed.cards.count,
+					to_card: card.view
+				},
+				player_log: { from_card: card.view }
+			}
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+
+		if !game.has_dialog
+			game.apply_card_actions(game.current_player, game.current_player.play_area.top_card, events)
+		end
+
+	end
+
+	def react_to_attack(game, card, player, events)
+		player.hand.add_card(card)
+		events << {
+			type: "move_card",
+			all_log: {
+				from_player: player.name,
+				from_zone: "reavealed",
+				from_size: player.revealed.cards.count,
+				from_card: card.view,
+				to_player: player.name,
+				to_zone: "hand",
+				to_size: player.hand.cards.count,
+				to_card: card.view
+			}
+		}
+		return false
+	end
+
+end
+
+class Adventurer < Special
 	def execute(game, player, events)
 		count = 0
 		while count < 2
@@ -68,7 +147,7 @@ class Adventurer
 end
 
 
-class Curse
+class Curse < Special
 	def execute(game, player, events)
 		curse_pile = game.supplies.select{|supply| supply.name == "Curse"}[0]
 		game.players.each do |opponent|
@@ -95,7 +174,7 @@ class Curse
 	end
 end
 
-class CouncilRoom
+class CouncilRoom < Special
 
 	def execute(game, player, events)
 		game.players.each do |opponent|
@@ -107,7 +186,7 @@ class CouncilRoom
 
 end
 
-class YouMayTrash
+class YouMayTrash < Special
 
 	def execute(game, player, events)
 		state = {
@@ -167,11 +246,25 @@ class YouMayTrash
 end
 
 
-class AttackDiscardTo
+class AttackDiscardTo < Special
 
 	def execute(game, player, events)
 		logs_by_id = []
 		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
+			should_attack = true
+			opponent.revealed.cards.each do |card|
+				card.card_attributes.each do |attr|
+					if (attr.key =~ /^special_/)
+						class_name = attr.key
+						class_name.slice!('special_')
+						special = class_name.constantize.new()
+						should_attack &= special.react_to_attack(game, card, opponent, events)
+					end
+				end
+			end
+			unless should_attack
+				next
+			end
 			total_cards = opponent.hand.cards.count()
 			to_discard = total_cards - 3
 			if to_discard <= 0
@@ -234,7 +327,7 @@ class AttackDiscardTo
 
 end
 
-class Cellar
+class Cellar < Special
 
 	def execute(game, player, events)
 		state = {
