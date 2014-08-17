@@ -5,4 +5,6 @@ WebsocketRails::EventMap.describe do
 	subscribe :phase_advance_event, to: NoobController, with_method: :advance_phase
 	subscribe :game_fetch_event, to: NoobController, with_method: :game_fetch
   subscribe :chat_event, to: NoobController, with_method: :chat
+	subscribe :client_connected, to: NoobController, with_method: :client_connected
+	subscribe :client_disconnected, to: NoobController, with_method: :client_disconnected
 end
