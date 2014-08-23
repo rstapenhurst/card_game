@@ -26,6 +26,97 @@ class Special
 	end
 end
 
+class Bureaucrat < Special
+
+	def execute(game, player, events)
+		logs_by_id = []
+		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
+			should_attack = allow_reactions_from_player(game, opponent, events)
+			unless should_attack
+				next
+			end
+			unless opponent.hand.has_card_boolean?('is_victory')
+				next	
+			end
+			state = {
+				dialog_type: 'choose_cards',
+				source: 'hand',
+				count_type: 'exactly',
+				count_value: 1,
+				prompt: "Choose a victory to place on top of your deck"
+			}
+			dialog = Dialog.create(game: game, active_player: opponent, stage: 1, special_type: 'Bureaucrat', state: state.to_s)
+
+			logs_by_id << {
+				owner_id: opponent.id,
+				id: dialog.id
+			}.merge!(state)
+		end
+
+		events << {
+			type: 'dialog',
+			logs_by_id: logs_by_id
+		}
+
+		supply = game.supplies.joins(:card_pile).where('card_piles.name' => 'Silver').take
+
+		unless supply.card_pile.is_empty
+			candidate_card = supply.card_pile.top_card
+			player.deck.add_card(candidate_card)
+			newTop = supply.card_pile.top_card
+			events << {
+				type: "move_card",
+				all_log: {
+					from_player: "<system>",
+					from_zone: "supply:#{supply.id}",
+					from_size: supply.card_pile.cards.count,
+					from_card: candidate_card.view,
+					revealed: newTop && newTop.view,
+					to_player: player.name,
+					to_zone: "deck",
+					to_size: player.deck.cards.count,
+					to_card: candidate_card.view
+				}
+			}
+		end
+
+	end
+
+	def process_response(game, player, dialog, data, events)
+		data['cards'].each do |card_id|
+			card = Card.find(card_id)
+			if player.hand.cards.where(id: card.id).count == 0
+				return
+			end
+			player.deck.add_card(card)
+			events << {
+				type: "move_card",
+				all_log: {
+					from_player: player.name,
+					from_zone: "hand",
+					from_size: player.hand.cards.count,
+					to_player: player.name,
+					to_zone: "deck",
+					to_size: player.discard.cards.count,
+					to_card: card.view
+				},
+				player_log: { from_card: card.view }
+			}
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+	end
+
+end
+
 class AvoidAttack < Special
 
 	def execute(game, player, events)
@@ -164,7 +255,7 @@ end
 
 class Curse < Special
 	def execute(game, player, events)
-		curse_pile = game.supplies.select{|supply| supply.name == "Curse"}[0]
+		game.supplies.map{|x| x}
 		game.players.each do |opponent|
 			if opponent.id != player.id
 				should_attack = allow_reactions_from_player(game, opponent, events)

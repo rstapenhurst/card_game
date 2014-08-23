@@ -210,7 +210,7 @@ class Game < ActiveRecord::Base
 		add_supply('Militia', 'kingdom', 10, events)
 		add_supply('Chapel', 'kingdom', 10, events)
 		add_supply('Council Room', 'kingdom', 10, events)
-		add_supply('Witch', 'kingdom', 10, events)
+		add_supply('Bureaucrat', 'kingdom', 10, events)
 		add_supply('Adventurer', 'kingdom', 10, events)
 		add_supply('Moat', 'kingdom', 10, events)
 		add_supply('Great Hall', 'kingdom', (players.count <= 2) ? 8 : 12, events)

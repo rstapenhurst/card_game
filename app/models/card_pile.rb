@@ -53,4 +53,12 @@ class CardPile < ActiveRecord::Base
 			sorted_card[:card]
 		}
 	end
+
+	def has_card?(name, value)
+		cards.joins(:card_attributes).where(card_attributes: {key: name, value: value}).any?
+	end
+
+	def has_card_boolean?(name)
+		has_card?(name, '1')
+	end
 end
