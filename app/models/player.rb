@@ -55,6 +55,39 @@ class Player < ActiveRecord::Base
 		end
 	end
 
+	def reveal_from_deck(events)
+		predraw(events)
+		return move_public('deck', 'revealed', events)
+	end
+
+	def pile_by_name(pile_name)
+		send(pile_name)
+	end
+
+	def move_public(from_pile_name, to_pile_name, events)
+		from = pile_by_name(from_pile_name)
+		to = pile_by_name(to_pile_name)
+
+		next_card = from.top_card
+		to.add_card(next_card)
+		new_top = from.top_card
+		events << {
+			type: "move_card",
+			all_log: {
+				from_player: name,
+				from_zone: from_pile_name,
+				from_size: from.cards.count,
+				from_card: next_card.view,
+				revealed: new_top && new_top.view,
+				to_player: name,
+				to_zone: to_pile_name,
+				to_size: to.cards.count,
+				to_card: next_card.view
+			}
+		}
+		return next_card
+	end
+
 	def get_attrib(attrib)
 		player_attributes.where(key: attrib).pluck(:value).first
 	end

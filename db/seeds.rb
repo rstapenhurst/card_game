@@ -47,5 +47,6 @@ make_card("Witch", "base", 5, { is_action: 1, is_attack: 1, cards: 2, special_Cu
 make_card("Adventurer", "base", 6, { is_action: 1, special_Adventurer: 2})
 make_card("Moat", "base", 2, { is_action: 1, is_reaction: 1, cards: 2, special_AvoidAttack: 1})
 make_card("Bureaucrat", "base", 4, { is_action: 1, is_attack: 1, special_Bureaucrat: 1})
+make_card("Thief", "base", 4, { is_action: 1, is_attack: 1, special_Thief: 1})
 
 make_card("Great Hall", "intrigue", 3, { is_action: 1, is_victory: 1, cards: 1, actions: 1, victory_points: 1 })

@@ -26,6 +26,58 @@ class Special
 	end
 end
 
+class Thief < Special
+
+	def execute(game, player, events)
+		cardsets = []
+		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
+			unless allow_reactions_from_player(game, opponent, events)
+				next
+			end
+
+			revealed_cards = [opponent.reveal_from_deck(events), opponent.reveal_from_deck(events)]
+			revealed_treasure_cards = revealed_cards.select{|card| card.is_true?('is_treasure')}.map{|card| card.view}
+			if revealed_treasure_cards.any?
+				cardsets << {
+					name: opponent.name,
+					cards: revealed_treasure_cards,
+					card_count_type: 'exactly',
+					card_count_value: 1,
+					options: {
+						discard: "Discard",
+						trash: "Trash",
+						gain: "Trash and gain"
+					},
+					option_count_type: 'exactly',
+					option_count_value: 1
+				}
+			end
+		end
+
+		if cardsets.any?
+			state = {
+				dialog_type: 'cardset_options',
+				cardsets: cardsets
+			}
+
+			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Thief', state: state.to_s)
+
+			events << {
+				type: 'dialog',
+				logs_by_id: [{
+					owner_id: player.id,
+					id: dialog.id
+				}.merge(state)]
+			}
+		end
+
+	end
+
+	def process_response(game, player, dialog, data, events)
+	end
+
+end
+
 class Bureaucrat < Special
 
 	def execute(game, player, events)

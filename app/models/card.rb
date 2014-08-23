@@ -19,7 +19,11 @@ class Card < ActiveRecord::Base
 	end
 
 	def has_attr(attr)
-		return card_attributes.where(key: attr).count > 0
+		card_attributes.where(key: attr).count > 0
+	end
+
+	def is_true?(attr)
+		has_attr(attr) and self.send(attr) == 1
 	end
 
 	def view
