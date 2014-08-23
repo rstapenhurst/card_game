@@ -107,12 +107,12 @@ class Adventurer < Special
 				events << {
 					type: "move_card",
 					all_log: {
-						from_player: player.id,
+						from_player: player.name,
 						from_zone: "deck",
 						from_size: player.deck.cards.count,
 						from_card: next_card.view,
 						revealed: new_top && new_top.view,
-						to_player: player.id,
+						to_player: player.name,
 						to_zone: "hand",
 						to_size: player.hand.cards.count,
 						to_card: next_card.view
@@ -125,12 +125,12 @@ class Adventurer < Special
 				events << {
 					type: "move_card",
 					all_log: {
-						from_player: player.id,
+						from_player: player.name,
 						from_zone: "deck",
 						from_size: player.deck.cards.count,
 						from_card: next_card.view,
 						revealed: new_top && new_top.view,
-						to_player: player.id,
+						to_player: player.name,
 						to_zone: "revealed",
 						to_size: player.revealed.cards.count,
 						to_card: next_card.view
@@ -144,12 +144,12 @@ class Adventurer < Special
 			events << {
 				type: "move_card",
 				all_log: {
-					from_player: player.id,
+					from_player: player.name,
 					from_zone: "revealed",
 					from_size: player.revealed.cards.count,
 					from_card: card.view,
 					revealed: new_top && new_top.view,
-					to_player: player.id,
+					to_player: player.name,
 					to_zone: "discard",
 					to_size: player.discard.cards.count,
 					to_card: card.view
