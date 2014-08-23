@@ -57,6 +57,7 @@ class Thief < Special
 		if cardsets.any?
 			state = {
 				dialog_type: 'cardset_options',
+				prompt: 'Choose actions for thief attacks',
 				cardsets: cardsets
 			}
 
@@ -74,6 +75,9 @@ class Thief < Special
 	end
 
 	def process_response(game, player, dialog, data, events)
+
+
+
 	end
 
 end
