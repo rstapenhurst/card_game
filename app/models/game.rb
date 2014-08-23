@@ -304,7 +304,10 @@ class Game < ActiveRecord::Base
 			advance_phase(events)
 		end
 
-		check_victory(events)
+		unless self.phase == 'finished'
+			check_victory(events)	
+		end
+	
 	end
 
 	def check_victory(events)
