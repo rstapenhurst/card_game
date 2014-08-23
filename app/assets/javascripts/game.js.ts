@@ -997,6 +997,12 @@ class CardGame {
 		}
 
     data.forEach((logEvent) => {
+
+			if (this.debugMode) {
+				console.log("Processing event at " + new Date());
+	    	console.log(JSON.stringify(logEvent));
+			}
+
       Events.handle(this.state, logEvent);
     });
 
