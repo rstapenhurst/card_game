@@ -152,12 +152,14 @@ module Events {
     }
   }
 
-  export function flushLog() {
+  export function flushLog(state: ClientState) {
+  if (!state || (state.gameState.phase != "treasure") || currentLogType != "card_play") {
     if (currentLog.length) {
       log(null, currentLogType, currentLog);
     }
     currentLogType = null;
     currentLog = "";
+	}
     outstanding_log.forEach(function(line) {
       $("#game-log").prepend(line);
     });
@@ -165,8 +167,13 @@ module Events {
   }
 
 
+  var newMoney: number = null;
+
   function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
-    appendLog('update', '', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
+	if (event.all_log.key == "money" && state.gameState.phase == "treasure")
+		newMoney = <number>event.all_log.value;
+	else
+		appendLog('update', '', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
     state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
   }
 
@@ -177,6 +184,12 @@ module Events {
   }
 
   function handlePhaseChange(state: ClientState, event: PhaseChange) {
+	if (event.all_log.new_phase == "treasure")
+		newMoney = null;
+	if (state.gameState.phase == "treasure" && newMoney) {
+		flushLog(null);
+		log(null, 'update', '{<strong>money</strong>=' + newMoney + '}');
+	}
     log(null, "phase_change", event.all_log.new_phase);
     state.updatePhase(event.all_log.new_phase);
   }
@@ -543,7 +556,9 @@ class ClientState {
 
   updatePhase = (newPhase) => {
     this.gameState.phase = newPhase;
-    this.dirty.hand = true; //Note: Dirty the hand so we force a re-sort since the hand sorting is per-phase, this should really only happen if it's your turn but yolo
+	if (this.gameState.current_player.name == this.gameState.player.name) {
+		this.dirty.hand = true; //Note: Dirty the hand so we force a re-sort since the hand sorting is per-phase, this should really only happen if it's your turn but yolo
+	}
     this.dirty.phase = true;
   }
   
@@ -1000,7 +1015,7 @@ class CardGame {
       Events.handle(this.state, logEvent);
     });
 
-    Events.flushLog();
+    Events.flushLog(this.state);
 
 		this.drawDevOptions();
 
