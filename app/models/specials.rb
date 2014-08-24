@@ -82,7 +82,7 @@ class Thief < Special
 			card = Card.find(cardset['cards'][0]['id'])
 			option = cardset['options'][0]['key']
 			if option == 'discard'
-				opponent.move_card_public(card, 'discard', events)
+				opponent.move_card_from_source_public(card, 'discard', events)
 			elsif option == 'trash'
 			elsif option == 'gain'
 			end

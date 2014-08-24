@@ -69,7 +69,7 @@ class Player < ActiveRecord::Base
 		return move_card_public(next_card, from_pile_name, to_pile_name, events)
 	end
 
-	def move_card_public(card, to_pile_name, events)
+	def move_card_from_source_public(card, to_pile_name, events)
 		from_pile_name = get_pile_name(card.card_pile)
 		return move_card_public(card, from_pile_name, to_pile_name, events)
 	end
