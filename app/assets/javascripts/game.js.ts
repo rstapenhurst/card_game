@@ -1,621 +1,17 @@
-﻿
-/// <reference path="phaser.d.ts" />
+﻿/// <reference path="phaser.d.ts" />
 /// <reference path="jquery.d.ts" />
+/// <reference path="card_game_interfaces.d.ts" />
+/// <reference path="game_state.js.ts" />
+/// <reference path="game_events.js.ts" />
 
-declare class Channel {
-  bind(eventName: string, callback: Function);
-}
-
-declare class WebSocketRails {
-  constructor(url: string, useWebSockets: boolean);
-  subscribe(channel: string) : Channel;
-  trigger(eventName: string, eventData: string);
-}
-
-class Card {
-  id: number;
-  cost: number;
-  money: number;
-  victory_points: number;
-  actions: number;
-  buys: number;
-  cards: number;
-
-  name: string;
-  template_name: string;
-
-  is_action: boolean;
-  is_treasure: boolean;
-  is_victory: boolean;
-
-  marked: boolean;
-}
-
-module Events {
-
-  var outstanding_log: Array<string> = [];
-
-  export function event(raw: any) {
-    raw.get = function(key) {
-      if (raw.hasOwnProperty('all_log') && raw.all_log.hasOwnProperty(key))
-        return raw.all_log[key]
-      if (raw.hasOwnProperty('opponent_log') && raw.opponent_log.hasOwnProperty(key))
-        return raw.opponent_log[key]
-      if (raw.hasOwnProperty('player_log') && raw.player_log.hasOwnProperty(key))
-        return raw.player_log[key]
-      if (raw.hasOwnProperty('log_by_id') && raw.log_by_id.hasOwnProperty(key))
-        return raw.log_by_id[key]
-    };
-    raw.find = function(key) {
-      if (raw.hasOwnProperty('all_log') && raw.all_log.hasOwnProperty(key))
-        return {value: raw.all_log[key], scope: "all"};
-      if (raw.hasOwnProperty('opponent_log') && raw.opponent_log.hasOwnProperty(key))
-        return {value: raw.opponent_log[key], scope: "opponent"};
-      if (raw.hasOwnProperty('player_log') && raw.player_log.hasOwnProperty(key))
-        return {value: raw.player_log[key], scope: "player"};
-      if (raw.hasOwnProperty('log_by_id') && raw.log_by_id.hasOwnProperty(key))
-        return {value: raw.log_by_id[key], scope: "log_by_id"};
-    };
-  }
-
-  export function handle(state: ClientState, raw) {
-
-    event(raw);
-
-    switch (raw.type) {
-      case 'phase_change':
-        handlePhaseChange(state, <PhaseChange>raw);
-        break;
-      case 'create_supply':
-        handleCreateSupply(state, <CreateSupply>raw);
-        break;
-      case 'move_card':
-        handleMoveCard(state, <MoveCard>raw);
-        break;
-      case 'dialog':
-        switch (raw.get('dialog_type')) {
-          case 'complete':
-            state.setInstructions('');
-            state.setFunctions(null, null);
-            break;
-          default:
-            state.handleDialog(raw);
-            break;
-        }
-        break;
-      case 'recycle_deck':
-        state.recycleDeck(raw.all_log.player, raw.all_log.size);
-        log(null, 'card_recycle', '<strong>' + raw.all_log.player + '</strong>');
-        break;
-      case 'update_current_player':
-        handleUpdateCurrentPlayer(state, <UpdatePlayer>raw);
-        break;
-			case 'player_connected':
-				state.playerConnected(raw.all_log.name, true);
-				log(null, null, '<strong>' + raw.all_log.name + ' connected</strong>');
-				break;
-			case 'player_disconnected':
-				state.playerConnected(raw.all_log.name, false);
-				log(null, null, '<strong>' + raw.all_log.name + ' disconnected</strong>');
-				break;
-      default:
-        log(null, null, JSON.stringify(raw));
-        break;
-    }
-  }
-
-  function log(event: EventBase, img: string, message: string) {
-    var build = "<div class=\"log-line\">";
-
-    if (event) {
-      build += "[" + event.event_index + "] "
-    }
-
-    if (img) {
-      build += "<img class=\"log-icon\" src=\"/assets/log_" + img + ".png\">";
-    }
-
-    build += "<span class=\"log-text\">" + message + "</span>";
-
-    build += "</div>";
-
-    outstanding_log.push(build);
-  }
-
-  export declare class ChooseCards extends EventBase {
-    player_log: {
-      id: number;
-      dialog_type: string;
-      source: string;
-      count_type: string;
-      count_value: number;
-      prompt: string;
-    }
-  }
-
-
-
-
-  declare class CreateSupply extends EventBase {
-    all_log: FaceUpPile;
-  }
-
-  function handleCreateSupply(state: ClientState, event: CreateSupply) {
-    log(event, null, "Create supply [" + event.all_log.top.template_name + "], size: " + event.all_log.size);
-    state.createSupply(event.all_log);
-  }
-
-  declare class UpdatePlayer extends EventBase {
-    all_log: {
-      key: string;
-      value: any;
-    }
-  }
-
-  export function flushLog(state: ClientState) {
-  if (!state || (state.gameState.phase != "treasure") || currentLogType != "card_play") {
-    if (currentLog.length) {
-      log(null, currentLogType, currentLog);
-    }
-    currentLogType = null;
-    currentLog = "";
-	}
-    outstanding_log.forEach(function(line) {
-      $("#game-log").prepend(line);
-    });
-    outstanding_log = [];
-  }
-
-
-  var newMoney: number = null;
-
-  function handleUpdateCurrentPlayer(state: ClientState, event: UpdatePlayer) {
-	if (event.all_log.key == "money" && state.gameState.phase == "treasure")
-		newMoney = <number>event.all_log.value;
-	else
-		appendLog('update', '', '', '{<strong>' + event.all_log.key + '</strong>=' + event.all_log.value + '}');
-    state.updateCurrentPlayer(event.all_log.key, event.all_log.value);
-  }
-
-  declare class PhaseChange extends EventBase {
-    all_log: {
-      new_phase: string;
-    }
-  }
-
-  function handlePhaseChange(state: ClientState, event: PhaseChange) {
-	if (event.all_log.new_phase == "treasure")
-		newMoney = null;
-	if (state.gameState.phase == "treasure" && newMoney) {
-		flushLog(null);
-		log(null, 'update', '{<strong>money</strong>=' + newMoney + '}');
-	}
-    log(null, "phase_change", event.all_log.new_phase);
-    state.updatePhase(event.all_log.new_phase);
-  }
-
-  declare class MoveCard extends EventBase {
-    all_log: {
-      from_player: string;
-      from_zone: string;
-      from_size: number;
-
-      revealed: Card;
-
-      to_player: string;
-      to_zone: string;
-      to_size: number;
-    }
-  }
-
-  var currentLogKey: string;
-  var currentLogType: string;
-  var currentLog: string = "";
-
-  function appendLog(type: string, key: string, initial: string, message: string) {
-    if (currentLogType == type && key == currentLogKey) {
-      currentLog += " " + message;
-    } else {
-      if (currentLog.length) {
-        log(null, currentLogType, currentLog);
-      }
-      currentLogType = type;
-      currentLogKey = key;
-      currentLog = initial + message;
-    }
-  }
-
-  function handleMoveCard(state: ClientState, event: MoveCard) {
-    var removed = event.find("from_card");
-    var removed_card_name: string = removed && removed.value.template_name || "a card";
-
-    var pic = null;
-
-    var noLog = false;
-
-    if (event.all_log.from_zone == "hand")
-      state.removeFromHand(event.all_log.from_player, removed && removed.value);
-    else if (removed && event.all_log.from_zone.lastIndexOf("supply", 0) === 0) {
-      pic = 'card_buy';
-      state.removeFromSupply(event.all_log.from_zone, event.all_log.revealed, event.all_log.from_size);
-    }
-    else if (event.all_log.from_zone == "deck")
-      state.removeFromDeck(event.all_log.from_player, event.all_log.from_size);
-    else if (event.all_log.from_zone == 'play_area')
-      state.removeFromPlayArea(removed.value);
-    else if (event.all_log.from_zone == 'revealed')
-      noLog = true;
-
-
-    var added = event.find("to_card");
-    var added_card_name: string = added && added.value.template_name || "a card";
-
-    if (event.all_log.to_zone == "play_area") {
-      state.addToPlayArea(added.value);
-      pic = 'card_play';
-    }
-    else if (event.all_log.to_zone == "hand") {
-      state.addToHand(event.all_log.to_player, added && added.value || null, event.all_log.to_size);
-      if (added && added.scope == "player")
-        pic = 'you_card_draw';
-      else
-        pic = 'card_draw';
-    }
-    else if (event.all_log.to_zone == "discard") {
-      state.addToDiscard(event.all_log.to_player, added.value, event.all_log.to_size);
-      pic = pic || 'card_discard';
-    }
-    else if (event.all_log.to_zone == "supply")
-      state.addToSupply(event.all_log.to_zone, added.value, event.all_log.to_size);
-    else if (event.all_log.to_zone == "revealed")
-      pic = 'card_reveal';
-
-    var definite = added && added.value.template_name || removed && removed.value.template_name || 'a card';
-
-    if (!noLog) {
-      if (pic) {
-        appendLog(pic, event.all_log.to_player, "<strong>" + event.all_log.to_player + "</strong>: ", definite);
-      } else {
-        log(event, null, "Moving (" + definite + ") from: " + event.all_log.from_player + "/" + event.all_log.from_zone + " to: " + event.all_log.to_player + "/" + event.all_log.to_zone);
-      }
-    }
-
-  }
-
-  export declare class Maybe {
-    scope: string;
-    value: any;
-  }
-
-  export declare class EventBase {
-    event_index: number;
-    find(key:string) : Maybe;
-    get(key:string) : any;
-  }
-}
-
-declare class FaceUpPile {
-  id: number;
-  size: number;
-  top: Card;
-  name: string;
-  supply_type: string;
-}
-
-declare class You {
-  name: string;
-  deck_size: number;
-  hand: Array<Card>;
-  discard: FaceUpPile;
-}
-
-declare class Opponent {
-  name: string;
-  deck_size: number;
-  hand_size: number;
-  discard: FaceUpPile;
-  connected: boolean;
-}
-
-declare class Player {
-  name: string;
-
-  money: number;
-  actions: number;
-  buys: number;
-}
-
-
-declare class GameState {
-  phase: string;
-  current_player: Player;
-  player: You;
-  opponents: Array<Opponent>;
-  play_area: Array<Card>;
-  supplies: Array<FaceUpPile>;
-  dialogs: Array<any>;
-}
-
-class ClientDirtyBits {
-  phase: boolean;
-  hand: boolean;
-  playArea: boolean;
-  currentPlayer: boolean;
-  myDiscard: boolean;
-  supplies: boolean;
-  deck: boolean;
-  opponents: boolean;
-
-  instructions: boolean;
-}
-
-class FilterComplete {
-  static exactly(cards: any, num: number) {
-    return cards.length == num;
-  }
-  static at_least(cards: any, num: number) {
-    return cards.length >= num;
-  }
-  static at_most(cards: any, num: number) {
-		return cards.length <= num;
-  }
-}
-
-class FilterSelect {
-  static exactly(cards: any, card: Card, num: number) {
-    return cards.length < num;
-  }
-  static at_least(cards: any, card: Card, num: number) {
-    return true;
-  }
-  static at_most(cards: any, card: Card, num: number) {
-    return cards.length < num;
-  }
-}
-
-class SupplyPiles {
-  kingdom: Array<FaceUpPile>;
-  treasure: Array<FaceUpPile>;
-  victory: Array<FaceUpPile>;
-
-  constructor() {
-    this.kingdom = [];
-    this.treasure = [];
-    this.victory = [];
-  }
-}
-
-class ClientState {
-  gameState: GameState;
-  dirty: ClientDirtyBits;
-  instructions: string;
-
-  clickCard: Function;
-  advance: Function;
-
-  supplies: SupplyPiles;
-
-  constructor() {
-    this.dirty = new ClientDirtyBits();
-    this.instructions = "";
-  }
-
-  addOpponent(opp: Opponent) {
-    this.gameState.opponents.push(opp);
-    this.dirty.opponents = true;
-  }
-
-  setInstructions(n: string) {
-    this.instructions = n;
-    this.dirty.instructions = true;
-  }
-
-  fullUpdate(newState) {
-    this.gameState = newState;
-    this.supplies = new SupplyPiles();
-    this.gameState.supplies.forEach((x) => {
-      this.supplies[x.supply_type].push(x);
-    });
-  }
-
-  findPlayer(name: string) {
-    for (var i = 0; i < this.gameState.opponents.length; i++) {
-      if (this.gameState.opponents[i].name == name) {
-        return this.gameState.opponents[i];
-      }
-    }
-    return null;
-  }
-
-  removeFromDeck(player: string, newSize: number) {
-    if (player == this.gameState.player.name) {
-      this.gameState.player.deck_size = newSize;
-      this.dirty.deck = true;
-    } else {
-      this.findPlayer(player).deck_size--;
-      this.dirty.opponents = true;
-    }
-  }
-
-  addToHand(player: string, card: Card, newSize: number) {
-    if (player == this.gameState.player.name) {
-      this.gameState.player.hand.push(card);
-      this.dirty.hand = true;
-    } else {
-      this.findPlayer(player).hand_size++;
-      this.dirty.opponents = true;
-    }
-  }
-
-  removeFromHand(player: string, card: Card) {
-    if (player == this.gameState.player.name) {
-      for (var i = 0; i < this.gameState.player.hand.length; i++) {
-        if (this.gameState.player.hand[i].id == card.id) {
-          this.gameState.player.hand.splice(i, 1);
-          break;
-        }
-      }
-      this.dirty.hand = true;
-    } else {
-      this.findPlayer(player).hand_size--;
-      this.dirty.opponents = true;
-    }
-  }
-
-  /*
-  wtf add and remove are the same???
-  */
-  addToSupply(supply: string, newTop: Card, newSize: number) {
-    this.gameState.supplies.forEach((pile) => {
-      if (pile.id == parseInt(supply.substring(7))) {
-        pile.top = newTop;
-        pile.size = newSize;
-      }
-    });
-
-    this.dirty.supplies = true;
-  }
-  removeFromSupply(supply: string, newTop: Card, newSize: number) {
-    this.gameState.supplies.forEach((pile) => {
-      if (pile.id == parseInt(supply.substring(7))) {
-        pile.top = newTop;
-        pile.size = newSize;
-      }
-    });
-
-    this.dirty.supplies = true;
-  }
-
-  addToDiscard(player: string, card: Card, newSize: number) {
-    if (player == this.gameState.player.name) {
-      this.gameState.player.discard.size = newSize;
-      this.gameState.player.discard.top = card;
-
-      this.dirty.myDiscard = true;
-    } else {
-      var opp = this.findPlayer(player);
-      opp.discard.size = newSize;
-      opp.discard.top = card;
-
-      this.dirty.opponents = true;
-    }
-  }
-
-  removeFromPlayArea(card: Card) {
-    for(var i = 0; i < this.gameState.play_area.length; i++) {
-      if (this.gameState.play_area[i].id == card.id) {
-        this.gameState.play_area.splice(i, 1);
-        break;
-      }
-    }
-    this.dirty.playArea = true;
-  }
-
-  addToPlayArea(card: Card) {
-    this.gameState.play_area.push(card);
-    this.dirty.playArea = true;
-  }
-
-  setFunctions(clickCardFunc: Function, advanceFunc: Function) {
-    this.clickCard = clickCardFunc;
-    this.advance = advanceFunc;
-  }
-
-  createSupply = (supply) => {
-    this.gameState.supplies.push(supply);
-    this.supplies[supply.supply_type].push(supply);
-    this.dirty.supplies = true;
-  }
-
-  recycleDeck = (player: string, newDeckSize: number) => {
-    if (player == this.gameState.player.name) {
-      this.gameState.player.discard.top = null;
-      this.gameState.player.discard.size = 0;
-      this.gameState.player.deck_size = newDeckSize;
-      this.dirty.myDiscard = true;
-      this.dirty.deck = true;
-    } else {
-      var opp = this.findPlayer(player);
-      opp.discard.top = null;
-      opp.discard.size = 0;
-      opp.deck_size = newDeckSize;
-      this.dirty.opponents = true;
-    }
-  }
-
-	playerConnected = (player: string, connected: boolean) => {
-		var opponent = this.findPlayer(player);
-		opponent.connected = connected;
-		this.dirty.opponents = true;
-	}
-
-  updateCurrentPlayer = (key, value) => {
-    this.gameState.current_player[key] = value;
-    this.dirty.currentPlayer = true;
-  }
-
-  updatePhase = (newPhase) => {
-    this.gameState.phase = newPhase;
-	if (this.gameState.current_player.name == this.gameState.player.name) {
-		this.dirty.hand = true; //Note: Dirty the hand so we force a re-sort since the hand sorting is per-phase, this should really only happen if it's your turn but yolo
-	}
-    this.dirty.phase = true;
-  }
-  
-  handleDialog(raw: any) {
-    switch (raw.get('dialog_type')) {
-      case 'choose_cards':
-        this.setInstructions(raw.get('prompt'));
-        this.handleChooseCards(<Events.ChooseCards>raw);
-        break;
-      default:
-        console.log("Unknown dialog: " + JSON.stringify(raw));
-        break;
-    }
-  }
-
-  handleChooseCards(event: Events.ChooseCards) {
-    if (event.get('source') == "hand") {
-      var selected = {};
-      selected['length'] = 0;
-      this.setFunctions(
-        function(game, source, card) {
-          if (source == "hand") {
-            if (selected.hasOwnProperty('' + card.id)) {
-              delete selected['' + card.id]
-              selected['length']--;
-              card.marked = false;
-            } else {
-              if (FilterSelect[event.get('count_type')](selected, card, event.get('count_value'))) {
-                selected['' + card.id] = true;
-                card.marked = true;
-                selected['length']++;
-              }
-            }
-
-            game.drawHand();
-          }
-        },
-        function(game) {
-          if (FilterComplete[event.get('count_type')](selected, event.get('count_value'))) {
-            var cards = [];
-            delete selected['length']
-            for (var key in selected) {
-              cards.push(key);
-            }
-            game.trigger('dialog_respond_event', {dialog_id: event.get('id'), cards: cards});
-            this.setInstructions('Waiting for players...');
-
-            this.setFunctions(doNothing, doNothing);
-          }
-        }
-      );
-    }
-  }
-}
 
 declare var game_id: number;
 declare var player_id: number;
+
+interface SpriteView {
+  sprite: Phaser.Sprite;
+  group: Phaser.Group;
+}
 
 class Util {
   public static CardWidth: number = 128;
@@ -665,10 +61,16 @@ class CursorSet {
   }
 }
 
-function doNothing() { }
 
 var oppTitleStyle: any = { font: "14px Arial" };
 var oppTextStyle: any = { font: "10px Arial" };
+
+function optionsStyle() {
+  return { 
+    font: "18px Arial",
+    fill: '#cccccc'
+  };
+}
 
 function textLine(group: Phaser.Group, game: Phaser.Game, xpos: number, ypos: number, keyText: string, valueText: string, style: any) {
   var text = game.add.text(0, 0, keyText, style);
@@ -708,6 +110,8 @@ class CardGame {
 
   opponentsWidgets: Phaser.Group;
 
+  modalDialog: Phaser.Group;
+  modalContents: Phaser.Group;
 
   constructor() {
     this.game = new Phaser.Game(1200, 900, Phaser.AUTO, 'play-area', { preload: this.preload, create: this.create, update: this.update });
@@ -721,6 +125,9 @@ class CardGame {
   }
 
   preload = () => {
+    this.game.load.spritesheet('checkbox', Asset.image('checkbox.png'), 32, 32);
+
+    this.game.load.image('dialog_bg', Asset.image('dialog_bg.png'));
     this.game.load.image('card_face_empty', Asset.image('card_face_empty.png'));
     this.game.load.image('card_face_selected', Asset.image('card_face_selected.png'));
     this.game.load.image('small_card_face_empty', Asset.image('small_card_face_empty.png'));
@@ -730,21 +137,80 @@ class CardGame {
     this.game.load.image('cursor_play', Asset.image('cursor_play.png'));
   }
 
+  createView = (key: string, textVal: string, parentGroup: Phaser.Group, x: number, y: number, textStyle: any): SpriteView => {
+    var cardGroup = this.game.add.group();
+    cardGroup.x = x;
+    cardGroup.y = y;
+
+    parentGroup.addChild(cardGroup);
+
+    var text = this.game.add.text(0, 0, textVal, textStyle);
+    text.x = 40;
+    text.y = 10;
+
+    var sprite = cardGroup.create(0, 0, key);
+    sprite.inputEnabled = true;
+
+    cardGroup.add(text);
+
+    return { group: cardGroup, sprite: sprite };
+  }
+
+  createCardView = (card: Card, parentGroup: Phaser.Group, textRotated: boolean, x: number, y: number): SpriteView => {
+    var cardGroup = this.game.add.group();
+    cardGroup.x = x;
+    cardGroup.y = y;
+
+    parentGroup.addChild(cardGroup);
+
+    var text = this.game.add.text(0, 0, card.template_name + '\n cost:' + card.cost, {font: "10px Arial"});
+    text.x = 20;
+    text.y = 20;
+
+    if (textRotated) {
+      text.y = 64;
+      text.angle = -90;
+    }
+
+    var sprite;
+
+    if (card.marked)
+      sprite = cardGroup.create(0, 0, 'card_face_selected');
+    else
+      sprite = cardGroup.create(0, 0, 'card_face_empty');
+
+    sprite.inputEnabled = true;
+
+    cardGroup.add(text);
+
+    return { group: cardGroup, sprite: sprite };
+  }
+
+  drawCard = (card: Card, parentGroup: Phaser.Group, textRotated: boolean, x: number, y: number, clickFunc: Function) => {
+    var view = this.createCardView(card, parentGroup, textRotated, x, y);
+
+    if (clickFunc)
+      view.sprite.events.onInputDown.add(() => {clickFunc();}, this);
+
+    return view.group;
+  }
+
   drawPlayArea = (cards: Array<Card>, group: Phaser.Group) => {
     group.removeAll(true, true);
     var xpos: number = 10;
     cards.forEach((x) => {
-      var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
-      text.x = xpos + 20;
-      text.y = 64;
-      text.angle = -90;
+      this.drawCard(x, group, true, xpos, 0, () => { this.trigger('card_play_event', {card_id: x.id}); });
+      //var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
+      //text.x = xpos + 20;
+      //text.y = 64;
+      //text.angle = -90;
 
-      var sprite = group.create(xpos, 0, 'card_face_empty');
-      sprite.inputEnabled = true;
-      sprite.events.onInputDown.add(() => {
-        this.trigger('card_play_event', {card_id: x.id});
-      }, this);
-      group.add(text);
+      //var sprite = group.create(xpos, 0, 'card_face_empty');
+      //sprite.inputEnabled = true;
+      //sprite.events.onInputDown.add(() => {
+      //  this.trigger('card_play_event', {card_id: x.id});
+      //}, this);
+      //group.add(text);
 
       xpos = xpos + 40;
     });
@@ -974,9 +440,12 @@ class CardGame {
       this.state.gameState.dialogs.forEach((dialog) => {
         var ev = { player_log: dialog };
         Events.event(ev);
+        console.log('parsing dialogs');
         this.state.handleDialog(ev);
       });
     }
+
+    this.drawModal();
   }
 
   trigger = (eventName, data) => {
@@ -1002,6 +471,112 @@ class CardGame {
 
   onChat = (data) => {
     $("#chat-tab-all-chat").prepend('<div><span class="chat-sender">' + data.from + '</span><span> ' + data.message + '</span></div>');
+  }
+
+
+  drawCardset = (g: Phaser.Graphics, cardset: CardsetOption, cx: number, cy: number) => {
+    var widthOfCards = cardset.cards.length * Util.CardPadded;
+
+    var x = cx;
+    var y = cy;
+
+    var instructionText = this.game.add.text(x, y + 16, 'Choose\n\n', optionsStyle());
+    var cardInstructions = this.game.add.text(x, y + 64, cardset.card_count_type + ' ' + cardset.card_count_value + '\ncard(s)', optionsStyle());
+    var optInstructions = this.game.add.text(x, y + 128, cardset.option_count_type + ' ' + cardset.option_count_value + '\noption(s)', optionsStyle());
+
+    this.modalContents.addChild(instructionText);
+    this.modalContents.addChild(cardInstructions);
+    this.modalContents.addChild(optInstructions);
+
+    optInstructions.fill = '#ff0000';
+
+    x += 130;
+
+    var nameText = this.game.add.text(x, y + 91, cardset.name, optionsStyle());
+    nameText.fontSize = 24;
+    this.modalContents.addChild(nameText);
+
+    x += 130;
+
+    var set = this.state.createSelectorSet(
+      cardset.card_count_type, cardset.card_count_value, 
+      (valid: boolean) => { cardInstructions.fill = valid ? '#00ff00' : '#ff0000'; },
+      (card: Card, view: SpriteView) => {
+        console.log("HELLO WORLD");
+        if (card.marked)
+          view.sprite.loadTexture('card_face_selected', 0);
+        else
+          view.sprite.loadTexture('card_face_empty', 0);
+      });
+
+    cardset.cards.forEach((c) => {
+      var view = this.createCardView(c, this.modalContents, false, x, y);
+      view.sprite.events.onInputDown.add(set.add(c, view), this);
+      x += Util.CardPadded;
+    });
+
+    y += 30;
+    x += 60;
+
+    var optSet = this.state.createSelectorSet(
+      cardset.option_count_type, cardset.option_count_value,
+      (valid: boolean) => { optInstructions.fill = valid ? '#00ff00' : '#ff0000'; },
+      (checkbox: Markable, view: SpriteView) => {
+        if (checkbox.marked)
+          view.sprite.animations.frame = 0;
+        else
+          view.sprite.animations.frame = 1;
+      });
+
+
+    for (var opt in cardset.options) {
+      var view = this.createView('checkbox', cardset.options[opt], this.modalContents, x, y, optionsStyle());
+      view.sprite.animations.frame = 1;
+      var obj = {id: opt, marked: false};
+      view.sprite.events.onInputDown.add(optSet.add(obj, view), this);
+      y += 34;
+    }
+
+    set.validate();
+    optSet.validate();
+
+    cardset.cardsResult = set;
+    cardset.optionsResult = optSet;
+
+  }
+
+  drawCardsetOptions = () => {
+    var raw = this.state.currentModal;
+    var cardsets: Array<CardsetOption> = raw.get('cardsets');
+
+    var graphics:any = this.game.add.graphics(0, 0);
+    graphics.inputEnabled = true;
+
+    graphics.lineStyle(2, 0x000000, 1);
+
+
+    switch (cardsets.length) {
+      case 1:
+        this.drawCardset(graphics, cardsets[0], 40, 0);
+        break;
+    }
+
+    this.modalContents.addChild(graphics);
+  }
+
+  drawModal = () => {
+    if (this.state.modalEnabled) {
+      this.modalContents.removeAll(true, true);
+      switch (this.state.drawModal) {
+        case 'cardset_options':
+          this.drawCardsetOptions();
+          break;
+      }
+      this.game.world.bringToTop(this.modalDialog);
+      this.modalDialog.visible = true;
+    } else {
+      this.modalDialog.visible = false;
+    }
   }
 
   onGameUpdate = (data) => {
@@ -1069,12 +644,27 @@ class CardGame {
       this.instructions.setText(this.state.instructions);
       this.state.dirty.instructions = false;
     }
+
+    this.drawModal();
+
   }
 
   create = () => {
     this.game.stage.backgroundColor = 0xefefef;
     this.turnIndicator = this.game.add.text(0, 20, "Phase: ???", {font: "14px Arial"});
     this.currentPlayerStatus = this.game.add.text(0, 40, "Status: ???", {font: "14px Arial"});
+
+    this.modalDialog = this.game.add.group();
+    this.modalDialog.x = 50;
+    this.modalDialog.y = 50;
+    this.modalDialog.visible = false;
+    this.modalContents = this.game.add.group();
+
+    var dialogBG = this.game.add.tileSprite(0, 0, 1100, 800, 'dialog_bg');
+    dialogBG.inputEnabled = true;
+    this.modalDialog.addChild(this.modalContents);
+    this.modalDialog.addChild(dialogBG);
+    this.modalDialog.sendToBack(dialogBG);
 
     this.instructions = new Phaser.Text(this.game, 0, 0, "", {font: "32px Arial", fill: "#0000aa"});
     this.instructions.position.set(100, 200);
@@ -1148,4 +738,6 @@ window.onload = () => {
     }
   });
 }
+
+//comment = 15
 

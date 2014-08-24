@@ -30,7 +30,7 @@ class Thief < Special
 
 	def execute(game, player, events)
 		cardsets = []
-		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
+		game.players.each do |opponent|
 			unless allow_reactions_from_player(game, opponent, events)
 				next
 			end

@@ -50,3 +50,5 @@ make_card("Bureaucrat", "base", 4, { is_action: 1, is_attack: 1, special_Bureauc
 make_card("Thief", "base", 4, { is_action: 1, is_attack: 1, special_Thief: 1})
 
 make_card("Great Hall", "intrigue", 3, { is_action: 1, is_victory: 1, cards: 1, actions: 1, victory_points: 1 })
+
+User.create({name: 'tubs', password: 'test', password_confirmation: 'test'})

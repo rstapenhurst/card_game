@@ -69,10 +69,30 @@ input#chat-text-input {
   width: 99%;
 }
 
+
+#dialog {
+
+  display: none;
+  position: absolute;
+  left: 180px;
+  top: 80px;
+  padding: 25px;
+  border: 2px solid black;
+  background-color: white;
+  width: 50%;
+  height: 720px;
+  z-index: 999999 !important;
+}
+
     </style>
 <% end %>
 
 <div>
+  <div id="dialog">
+    <h2 id="dialog-title">Instructions</h2>
+    <div id="dialog-contents">
+    </div>
+  </div>
 <div id="play-area">
 </div>
 <div class="chat-box">

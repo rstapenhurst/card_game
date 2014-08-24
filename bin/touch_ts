@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+awk '/\/\/comment/ { print $1, $2, ($3+1) } !/\/\/comment/' ${SCRIPTPATH}/../app/assets/javascripts/game.js.ts > /tmp/game.js.ts
+mv /tmp/game.js.ts ${SCRIPTPATH}/../app/assets/javascripts/game.js.ts 
+

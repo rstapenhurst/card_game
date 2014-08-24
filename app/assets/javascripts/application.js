@@ -18,6 +18,9 @@
 //= require websocket_rails/main
 //= stub game.js
 //= stub game.js.ts
+//= stub game_events.js.ts
+//= stub game_state.js.ts
+//= stub card_game_interfaces.d.ts
 //= stub phaser.min.js
 //= stub phaser.js
 //= stub phaser.d.js
