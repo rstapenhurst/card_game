@@ -140,6 +140,7 @@ make_card("Moat", "base", 2, attribs.reaction.cards(2).special('AvoidAttack', 1)
 make_card("Bureaucrat", "base", 4, attribs.action.attack.special('Bureaucrat', 1).go)
 make_card("Thief", "base", 4, attribs.action.attack.special('Thief', 2).go)
 make_card("Spy", "base", 4, attribs.attack.cards(1).actions(1).special('Spy', 1).go)
+make_card("Library", "base", 5, attribs.action.special('Library', 7).go)
 
 make_card("Great Hall", "intrigue", 3, attribs.victory(1).cards(1).actions(1).go)
 

@@ -41,6 +41,89 @@ class Special
 
 end
 
+class Library < Special
+
+	def execute(game, player, events)
+		puts "#{player.name} is executing Library"
+
+		while player.hand.cards.count < 7
+			next_card = player.reveal_from_deck(events)
+			if next_card.is_true?('is_action')
+				puts "Action was drawn (#{next_card.name}). Sending dialog"
+
+				state = {
+					dialog_type: 'cardset_options',
+					prompt: 'Library - action revealed',
+					cardsets: [
+						{
+							name: next_card.name,
+							id: next_card.id,
+							cards: [next_card.view],
+							card_count_type: 'exactly',
+							card_count_value: 1,
+							options: {
+								draw: "Draw",
+								set_aside: "Set aside"
+							},
+							option_count_type: 'exactly',
+							option_count_value: 1
+						}
+					]
+				}
+
+				dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Library', state: state.to_s)
+
+				events << {
+					type: 'dialog',
+					logs_by_id: [{
+						owner_id: player.id,
+						id: dialog.id
+					}.merge(state)]
+				}
+				break
+			else
+				puts "Non-Action was drawn (#{next_card.name}). Moving to hand"
+				player.move_card_public(next_card, 'revealed', 'hand', events)
+			end
+
+		end
+
+		if !game.has_dialog
+			player.revealed.cards.each do |card|
+				player.move_card_public(card, 'revealed', 'discard', events)
+			end
+			@should_resume = true
+		end
+	end
+
+	def process_response(game, player, dialog, data, events)
+
+		data['cardsets'].each do |cardset|
+			card = Card.find(cardset['id'])
+			option = cardset['options'][0]
+			if option == 'draw'
+				puts "Chose to draw action"
+				opponent.move_card_from_source_public(card, 'hand', events)
+			elsif option == 'set_aside'
+				puts "Chose to set action aside. Leaving in revealed pile."
+			end
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+
+		execute_from_game(game, player, events)
+	end
+
+end
+
 class Spy < Special
 
 	def execute(game, player, events)
@@ -314,7 +397,9 @@ class Bureaucrat < Special
 		dialog.stage = 0
 		dialog.save
 
-		game.continue_card(events)
+		if !game.has_dialog
+			game.continue_card(events)
+		end
 	end
 
 end
@@ -559,7 +644,7 @@ class YouMayTrash < Special
 		dialog.stage = 0
 		dialog.save
 
-	  @should_resume = true
+		game.continue_card(events)
 	end
 
 end
@@ -638,7 +723,7 @@ class AttackDiscardTo < Special
 		dialog.save
 
 		if !game.has_dialog
-			@should_resume = true
+			game.continue_card(events)
 		end
 
 	end
@@ -700,7 +785,7 @@ class Cellar < Special
 		dialog.stage = 0
 		dialog.save
 
-		@should_resume = true
+		game.continue_card(events)
 
 	end
 
