@@ -521,6 +521,8 @@ class CardGame {
       }
     });
 
+    set.finishedAdding();
+
     y += 30;
     x += 60;
 
@@ -542,6 +544,8 @@ class CardGame {
       view.sprite.events.onInputDown.add(optSet.add(obj, view), this);
       y += 34;
     }
+
+    optSet.finishedAdding();
 
     set.validate();
     optSet.validate();
@@ -743,5 +747,5 @@ window.onload = () => {
   });
 }
 
-//comment = 16
+//comment = 17
 

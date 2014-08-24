@@ -282,7 +282,7 @@ class ClientState {
 
   createSelectorSet(count_type: string, count_value: number, doValidate: Function, onChange: Function) {
     var selected = { length: 0 };
-    var allSet: Array<{value: Markable; view: any}> = [];
+    var allSet: Array<{value: Markable; view: any; change: Function}> = [];
     return {
       results: function() {
         var ids = [];
@@ -300,8 +300,7 @@ class ClientState {
         doValidate(FilterComplete[count_type](selected, count_value));
       },
       add: function(value: Markable, view: any) {
-        allSet.push({value: value, view: view});
-        return function() {
+        var onClick = function() {
           if (selected.hasOwnProperty('' + value.id)) {
             delete selected['' + value.id]
             selected['length']--;
@@ -318,14 +317,14 @@ class ClientState {
             }
           }
         };
+        allSet.push({value: value, view: view, change: onClick});
+        return onClick;
       },
       finishedAdding: function() {
         if (count_type == 'exactly' && (count_value == allSet.length)) {
           allSet.forEach(function(marky) {
-            marky.value.marked = true;
-            onChange(marky.value, marky.view);
+            marky.change();
           });
-          doValidate(FilterComplete[count_type](selected, count_value));
         }
       }
     };
