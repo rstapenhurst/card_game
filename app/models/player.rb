@@ -65,11 +65,19 @@ class Player < ActiveRecord::Base
 	end
 
 	def move_public(from_pile_name, to_pile_name, events)
+		next_card = pile_by_name(from_pile_name).top_card
+		return move_card_public(next_card, from_pile_name, to_pile_name, events)
+	end
+
+	def move_card_public(card, to_pile_name, events)
+		from_pile_name = get_pile_name(card.card_pile)
+		return move_card_public(card, from_pile_name, to_pile_name, events)
+	end
+
+	def move_card_public(card, from_pile_name, to_pile_name, events)
 		from = pile_by_name(from_pile_name)
 		to = pile_by_name(to_pile_name)
-
-		next_card = from.top_card
-		to.add_card(next_card)
+		to.add_card(card)
 		new_top = from.top_card
 		events << {
 			type: "move_card",
@@ -77,15 +85,27 @@ class Player < ActiveRecord::Base
 				from_player: name,
 				from_zone: from_pile_name,
 				from_size: from.cards.count,
-				from_card: next_card.view,
+				from_card: card.view,
 				revealed: new_top && new_top.view,
 				to_player: name,
 				to_zone: to_pile_name,
 				to_size: to.cards.count,
-				to_card: next_card.view
+				to_card: card.view
 			}
 		}
 		return next_card
+	end
+
+	def get_pile_name(card_pile)
+		if draw == card_pile
+			return 'draw'
+		elsif discard == card_pile
+			return 'discard'
+		elsif revealed == card_pile
+			return 'revealed'
+		elsif hand == card_pile
+			return 'hand'
+		end
 	end
 
 	def get_attrib(attrib)

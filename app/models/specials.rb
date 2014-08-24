@@ -40,6 +40,7 @@ class Thief < Special
 			if revealed_treasure_cards.any?
 				cardsets << {
 					name: opponent.name,
+					id: opponent.id,
 					cards: revealed_treasure_cards,
 					card_count_type: 'exactly',
 					card_count_value: 1,
@@ -74,9 +75,18 @@ class Thief < Special
 
 	end
 
-	def process_response(game, player, dialog, data, events)
+	def process_response(game, player, dialog, dataa, events)
 
-
+		data['cardsets'].each do |cardset|
+			opponent = Player.find(cardset['id'])
+			card = Card.find(cardset['cards'][0]['id'])
+			option = cardset['options'][0]['key']
+			if option == 'discard'
+				opponent.move_card_public(card, 'discard', events)
+			elsif option == 'trash'
+			elsif option == 'gain'
+			end
+		end
 
 	end
 
