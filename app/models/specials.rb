@@ -41,10 +41,104 @@ class Special
 
 end
 
+class GainCard < Special
+
+	def gain_card(game, player, special_type, condition, events)
+		puts "Building dialog for gaining a card"
+		cards = []
+		game.supplies.each do |supply|
+			candidate_card = supply.card_pile.top_card
+			puts "Testing #{candidate_card.name}"
+			if candidate_card != nil and condition.call(candidate_card)
+				puts "#{candidate_card.name} is gainable"
+				view = candidate_card.view
+				view[:id] = supply.id
+				cards << view
+			else 
+				puts "#{candidate_card.name} cannot be gained"
+			end
+		end
+
+		if cards.any?
+			state = {
+				dialog_type: 'cardset_options',
+				prompt: 'Choose a card to gain',
+				cardsets: [
+					{
+						name: 'Options',
+						id: 0,
+						cards: cards,
+						card_count_type: 'exactly',
+						card_count_value: 1,
+						options: {
+							gain: "Gain",
+						},
+						option_count_type: 'exactly',
+						option_count_value: 1
+					}
+				]
+			}
+
+			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: special_type, state: state.to_s)
+
+			events << {
+				type: 'dialog',
+				logs_by_id: [{
+					owner_id: player.id,
+					id: dialog.id
+				}.merge(state)]
+			}
+		end
+
+	end
+
+end
+
+class Feast < GainCard
+
+	def execute(game, player, events)
+		puts "Executing Feast card"
+
+		feast = game.current_state.card
+		player.move_card_explicit_public(feast, player.name, 'play_area', player.play_area, '<system>', 'trash', game.trash, events)
+
+		gain_card(game, player, 'Feast', Proc.new { |card| next card.cost <= 5 }, events)
+
+		unless game.has_dialog
+			@should_resume = true
+		end
+	end
+
+	def process_response(game, player, dialog, data, events)
+		puts "Processing response for Feast. Data: #{data}"
+
+		data['cardsets'].each do |cardset|
+			supply = Supply.find(cardset['cards'][0])
+			puts "Chose to gain from #{supply.name}"
+			player.move_card_explicit_public(supply.card_pile.top_card, '<system>', supply.name, supply.card_pile, player.name, 'discard', player.discard, events)
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+
+		game.continue_card(events)
+
+	end
+
+end
+
 class Library < Special
 
 	def execute(game, player, events)
 		puts "#{player.name} is executing Library"
+		q
 
 		while player.hand.cards.count < 7
 			next_card = player.reveal_from_deck(events)
