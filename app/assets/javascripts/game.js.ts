@@ -498,6 +498,7 @@ class CardGame {
     this.modalContents.addChild(nameText);
 
     x += 130;
+    var cardStart = x;
 
     var set = this.state.createSelectorSet(
       cardset.card_count_type, cardset.card_count_value, 
@@ -514,6 +515,10 @@ class CardGame {
       var view = this.createCardView(c, this.modalContents, false, x, y);
       view.sprite.events.onInputDown.add(set.add(c, view), this);
       x += Util.CardPadded;
+      if (x > 800) {
+        x = cardStart;
+        y += Util.CardHeightPadded;
+      }
     });
 
     y += 30;

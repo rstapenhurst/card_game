@@ -282,6 +282,7 @@ class ClientState {
 
   createSelectorSet(count_type: string, count_value: number, doValidate: Function, onChange: Function) {
     var selected = { length: 0 };
+    var allSet: Array<{value: Markable; view: any}> = [];
     return {
       results: function() {
         var ids = [];
@@ -298,7 +299,8 @@ class ClientState {
       validate: function() {
         doValidate(FilterComplete[count_type](selected, count_value));
       },
-      add: function(value: {id: number; marked: boolean}, view: any) {
+      add: function(value: Markable, view: any) {
+        allSet.push({value: value, view: view});
         return function() {
           if (selected.hasOwnProperty('' + value.id)) {
             delete selected['' + value.id]
@@ -316,6 +318,15 @@ class ClientState {
             }
           }
         };
+      },
+      finishedAdding: function() {
+        if (count_type == 'exactly' && (count_value == allSet.length)) {
+          allSet.forEach(function(marky) {
+            marky.value.marked = true;
+            onChange(marky.value, marky.view);
+          });
+          doValidate(FilterComplete[count_type](selected, count_value));
+        }
       }
     };
   }
