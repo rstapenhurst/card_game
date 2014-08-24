@@ -93,7 +93,7 @@ class Player < ActiveRecord::Base
 				to_card: card.view
 			}
 		}
-		return next_card
+		return card
 	end
 
 	def get_pile_name(card_pile)
