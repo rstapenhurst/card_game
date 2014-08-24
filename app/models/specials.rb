@@ -30,7 +30,7 @@ class Thief < Special
 
 	def execute(game, player, events)
 		cardsets = []
-		game.players.each do |opponent|
+		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
 			unless allow_reactions_from_player(game, opponent, events)
 				next
 			end
@@ -75,18 +75,34 @@ class Thief < Special
 
 	end
 
-	def process_response(game, player, dialog, dataa, events)
+	def process_response(game, player, dialog, data, events)
 
 		data['cardsets'].each do |cardset|
 			opponent = Player.find(cardset['id'])
-			card = Card.find(cardset['cards'][0]['id'])
-			option = cardset['options'][0]['key']
+			card = Card.find(cardset['cards'][0])
+			option = cardset['options'][0]
 			if option == 'discard'
 				opponent.move_card_from_source_public(card, 'discard', events)
 			elsif option == 'trash'
 			elsif option == 'gain'
 			end
 		end
+
+		game.players.each do |opponent|
+			opponent.revealed.cards.each do |card|
+				opponent.move_card_public(card, 'revealed', 'discard', events)
+			end
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
 
 	end
 

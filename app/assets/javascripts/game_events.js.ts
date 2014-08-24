@@ -206,7 +206,7 @@ module Events {
     else if (event.all_log.from_zone == 'play_area')
       state.removeFromPlayArea(removed.value);
     else if (event.all_log.from_zone == 'revealed')
-      noLog = true;
+      noLog = false;
 
 
     var added = event.find("to_card");

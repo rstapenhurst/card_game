@@ -97,7 +97,7 @@ class Player < ActiveRecord::Base
 	end
 
 	def get_pile_name(card_pile)
-		if draw == card_pile
+		if deck == card_pile
 			return 'draw'
 		elsif discard == card_pile
 			return 'discard'

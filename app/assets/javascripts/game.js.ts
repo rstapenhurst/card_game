@@ -441,6 +441,7 @@ class CardGame {
         var ev = { player_log: dialog };
         Events.event(ev);
         console.log('parsing dialogs');
+				console.log(ev);
         this.state.handleDialog(ev);
       });
     }
@@ -555,10 +556,8 @@ class CardGame {
     graphics.lineStyle(2, 0x000000, 1);
 
 
-    switch (cardsets.length) {
-      case 1:
-        this.drawCardset(graphics, cardsets[0], 40, 0);
-        break;
+		for (var i = 0; i < cardsets.length; i++) {
+      this.drawCardset(graphics, cardsets[i], 40, i * 200);
     }
 
     this.modalContents.addChild(graphics);
@@ -739,5 +738,5 @@ window.onload = () => {
   });
 }
 
-//comment = 15
+//comment = 16
 
