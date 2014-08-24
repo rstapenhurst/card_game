@@ -1,5 +1,16 @@
 class Special
 
+	def initialize
+		@should_resume = false
+	end
+
+	def execute_from_game(game, player, events)
+		execute(game, player, events)
+		if @should_resume
+			game.continue_card(events)
+		end
+	end
+
 	def execute(game, player, events)
 	end
 
@@ -11,6 +22,7 @@ class Special
 	end
 
 	def allow_reactions_from_player(game, player, events)
+		puts "Checking whether #{player.name} will be attacked"
 		should_attack = true
 		player.revealed.cards.each do |card|
 			card.card_attributes.each do |attr|
@@ -19,16 +31,106 @@ class Special
 					class_name.slice!('special_')
 					special = class_name.constantize.new()
 					should_attack &= special.react_to_attack(game, card, player, events)
+					puts "After checking #{card.name}, #{player.name} should be attacked if #{should_attack}"
 				end
 			end
 		end
+		puts "#{player.name} will be attacked if #{should_attack}"
 		return should_attack
 	end
+
+end
+
+class Spy < Special
+
+	def execute(game, player, events)
+		puts "Execute spy for #{player.name}"
+
+		cardsets = []
+		game.players.each do |opponent|
+			unless allow_reactions_from_player(game, opponent, events)
+				next
+			end
+
+			revealed_card = opponent.reveal_from_deck(events)
+			if revealed_card != nil
+				puts "#{opponent.name} has revealed #{revealed_card.name} for Spy"
+				cardsets << {
+					name: opponent.name,
+					id: opponent.id,
+					cards: [revealed_card.view],
+					card_count_type: 'exactly',
+					card_count_value: 1,
+					options: {
+						discard: "Discard",
+						deck: "Return to deck",
+					},
+					option_count_type: 'exactly',
+					option_count_value: 1
+				}
+			else
+				puts "#{opponent.name} has no card to reveal for Spy"
+			end
+		end
+
+		if cardsets.any?
+			puts "Sending Spy dialog"
+			state = {
+				dialog_type: 'cardset_options',
+				prompt: 'Choose actions for spy attacks',
+				cardsets: cardsets
+			}
+
+			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Spy', state: state.to_s)
+
+			events << {
+				type: 'dialog',
+				logs_by_id: [{
+					owner_id: player.id,
+					id: dialog.id
+				}.merge(state)]
+			}
+		else
+			puts "No dialog for spy - resuming card play"
+			@should_resume = true
+		end
+	end
+
+	def process_response(game, player, dialog, data, events)
+		puts "Process response spy #{player.name} with data #{data}"
+
+		data['cardsets'].each do |cardset|
+			opponent = Player.find(cardset['id'])
+			card = Card.find(cardset['cards'][0])
+			option = cardset['options'][0]
+			if option == 'discard'
+				opponent.move_card_from_source_public(card, 'discard', events)
+			elsif option == 'deck'
+				opponent.move_card_explicit_public(card, opponent.name, 'revealed', opponent.revealed, opponent.name, 'deck', opponent.deck, events)
+			end
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+
+		game.continue_card(events)
+
+	end
+
 end
 
 class Thief < Special
 
 	def execute(game, player, events)
+		puts "Execute thief for #{player.name}"
+
 		cardsets = []
 		game.players.select{|opponent| opponent.id != player.id}.each do |opponent|
 			unless allow_reactions_from_player(game, opponent, events)
@@ -56,6 +158,7 @@ class Thief < Special
 		end
 
 		if cardsets.any?
+			puts "Sending dialog for Thief"
 			state = {
 				dialog_type: 'cardset_options',
 				prompt: 'Choose actions for thief attacks',
@@ -71,6 +174,14 @@ class Thief < Special
 					id: dialog.id
 				}.merge(state)]
 			}
+		else
+			puts "Nothing to thieve - continue card play"
+			game.players.each do |opponent|
+				opponent.revealed.cards.each do |card|
+					opponent.move_card_public(card, 'revealed', 'discard', events)
+				end
+			end
+			@should_resume = true
 		end
 
 	end
@@ -84,7 +195,10 @@ class Thief < Special
 			if option == 'discard'
 				opponent.move_card_from_source_public(card, 'discard', events)
 			elsif option == 'trash'
+				opponent.move_card_explicit_public(card, opponent.name, 'revealed', opponent.revealed, '<system>', 'trash', game.trash, events)
 			elsif option == 'gain'
+				opponent.move_card_explicit_public(card, opponent.name, 'revealed', opponent.revealed, '<system>', 'trash', game.trash, events)
+				player.move_card_explicit_public(card, '<system>', 'trash', game.trash, player.name, 'discard', player.discard, events)
 			end
 		end
 
@@ -103,6 +217,8 @@ class Thief < Special
 		}
 		dialog.stage = 0
 		dialog.save
+
+		game.continue_card(events)
 
 	end
 
@@ -160,6 +276,8 @@ class Bureaucrat < Special
 					to_card: candidate_card.view
 				}
 			}
+		else
+			@should_resume = true
 		end
 
 	end
@@ -195,6 +313,8 @@ class Bureaucrat < Special
 		}
 		dialog.stage = 0
 		dialog.save
+
+		game.continue_card(events)
 	end
 
 end
@@ -202,9 +322,11 @@ end
 class AvoidAttack < Special
 
 	def execute(game, player, events)
+		@should_resume = true
 	end
 
 	def process_response(game, player, dialog, data, events)
+		puts "Processing #{player.name}'s dialog response: #{data}"
 
 		card_count = 0
 		data['cards'].each do |card_id|
@@ -240,7 +362,7 @@ class AvoidAttack < Special
 		dialog.save
 
 		if !game.has_dialog
-			game.apply_card_actions(game.current_player, game.current_player.play_area.top_card, events)
+			game.continue_card(events)
 		end
 
 	end
@@ -329,6 +451,7 @@ class Adventurer < Special
 				}
 			}
 		end
+		@should_resume = true
 
 	end
 
@@ -363,6 +486,7 @@ class Curse < Special
 				}
 			end
 		end
+		@should_resume = true
 	end
 end
 
@@ -374,6 +498,7 @@ class CouncilRoom < Special
 				opponent.draw(1, events)
 			end
 		end
+		@should_resume = true
 	end
 
 end
@@ -433,6 +558,8 @@ class YouMayTrash < Special
 		}
 		dialog.stage = 0
 		dialog.save
+
+	  @should_resume = true
 	end
 
 end
@@ -467,10 +594,14 @@ class AttackDiscardTo < Special
 			}.merge!(state)
 		end
 
-		events << {
-			type: 'dialog',
-			logs_by_id: logs_by_id
-		}
+		if logs_by_id.any?
+			events << {
+				type: 'dialog',
+				logs_by_id: logs_by_id
+			}
+		else
+			@should_resume = true
+		end
 
 	end
 
@@ -505,6 +636,11 @@ class AttackDiscardTo < Special
 		}
 		dialog.stage = 0
 		dialog.save
+
+		if !game.has_dialog
+			@should_resume = true
+		end
+
 	end
 
 end
@@ -563,6 +699,8 @@ class Cellar < Special
 		}
 		dialog.stage = 0
 		dialog.save
+
+		@should_resume = true
 
 	end
 

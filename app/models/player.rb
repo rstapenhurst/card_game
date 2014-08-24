@@ -53,6 +53,7 @@ class Player < ActiveRecord::Base
         }]
       }
 		end
+		q
 	end
 
 	def reveal_from_deck(events)
@@ -77,17 +78,21 @@ class Player < ActiveRecord::Base
 	def move_card_public(card, from_pile_name, to_pile_name, events)
 		from = pile_by_name(from_pile_name)
 		to = pile_by_name(to_pile_name)
+		move_card_explicit_public(card, name, from_pile_name, from, name, to_pile_name, to, events)
+	end
+
+	def move_card_explicit_public(card, from_player_name, from_pile_name, from, to_player_name, to_pile_name, to, events)
 		to.add_card(card)
 		new_top = from.top_card
 		events << {
 			type: "move_card",
 			all_log: {
-				from_player: name,
+				from_player: from_player_name,
 				from_zone: from_pile_name,
 				from_size: from.cards.count,
 				from_card: card.view,
 				revealed: new_top && new_top.view,
-				to_player: name,
+				to_player: to_player_name,
 				to_zone: to_pile_name,
 				to_size: to.cards.count,
 				to_card: card.view

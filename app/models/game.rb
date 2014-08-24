@@ -6,9 +6,38 @@ class Game < ActiveRecord::Base
 	has_many :cards, dependent: :destroy
 	has_many :events, dependent: :destroy
 	has_many :dialogs, dependent: :destroy
+	has_many :card_play_states, dependent: :destroy
 	belongs_to :trash, class_name:"CardPile", dependent: :destroy
 
+	def card_states
+		card_play_states.order(:play_order)
+	end
+
+	def current_state
+		card_states.take
+	end
+
+	def push_card_state(player, card, current_attribute)
+		CardPlayState.create(game: self, player: player, card: card, play_order: card_play_states.count + 1, current_attribute: current_attribute)
+	end
+
+	def pop_card_state
+		current_state.destroy
+	end
+
+	def set_current_attribute(current_attribute)
+		state = current_state
+		state.current_attribute = current_attribute
+		state.save
+	end
+
+	def continue_card(events)
+		state = current_state
+		play_card_from_attribute(state.player, state.card, state.current_attribute + 1, events)
+	end
+
 	def create_player_for_user(user_id)
+		puts "Creating player for user #{user_id}"
 		user = User.find(user_id)
 
 		deck = CardPile.create(name: "Deck (game: #{name}, user: #{user.name})")
@@ -33,6 +62,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def hook_reactions(type, player, card, events)
+		puts "Reaction hook for #{type} when #{card.name} was played by #{player.name}"
 		if type == :attack_played
 			reaction_occurring = false
 			logs_by_id = []
@@ -73,6 +103,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def play_card(player, card, events)
+		puts "#{player.name} play card #{card.name}"
 
 		player.play_area.add_card(card)
 
@@ -90,26 +121,31 @@ class Game < ActiveRecord::Base
       player_log: { from_card: card.view }
     }
 
-		if card.has_attr('is_attack') and card.is_attack == 1
+		push_card_state(player, card, 0)
+
+		puts "Checking for reaction hooks"
+		if card.is_true?('is_attack')
 			if hook_reactions(:attack_played, player, card, events)
+				puts "Reactions found - yielding for reaction dialog"
 				return
 			end
 		end
 
-		apply_card_actions(player, card, events)
+		play_card_from_attribute(player, card, 0, events)
 
 	end
 
-	def apply_card_actions(player, card, events)
+	def play_card_from_attribute(player, card, next_attribute, events)
+		puts "#{player.name} play card from attribute: #{card.name} @ #{next_attribute}"
 
 		dirty_actions = dirty_money = dirty_buys = false
-		if card.is_action == 1
-			player.set_actions(player.actions - 1)
-			dirty_actions = true
-		end
-		card.card_attributes.each do |attr|
+		pending_special = false
+		card.card_attributes.where('attribute_order > ?', next_attribute).order(:attribute_order).each do |attr|
 			puts "Playing card attribute for #{attr.key}"
-			if (attr.key == "money")
+			if (attr.key == 'is_action' and attr.value == 1)
+				player.set_actions(player.actions - 1)
+				dirty_actions = true
+			elsif (attr.key == "money")
 				player.set_money(player.money + attr.value)
 				dirty_money = true
 			elsif (attr.key == "actions")
@@ -123,8 +159,9 @@ class Game < ActiveRecord::Base
 			elsif (attr.key =~ /^special_/)
 				class_name = attr.key
 				class_name.slice!('special_')
-				special = class_name.constantize.new()
-				special.execute(self, player, events)
+				pending_special = class_name.constantize.new()
+				set_current_attribute(attr.attribute_order)
+				break
 			end
 		end
 		events << {
@@ -139,10 +176,16 @@ class Game < ActiveRecord::Base
       type: "update_current_player",
 			all_log: { key: "buys", value: player.buys }
 		} if dirty_buys
-		check_auto_advance(events)
+		if pending_special
+			pending_special.execute_from_game(self, player, events)
+		else
+			pop_card_state
+			check_auto_advance(events)
+		end
 	end
 
 	def buy_card(player, supply, events)
+		puts "#{player.name} buy card: #{supply.name}"
 		candidate_card = supply.card_pile.top_card
 		if player.money >= candidate_card.cost and player.buys >= 1
 			player.discard.add_card(candidate_card)
@@ -177,6 +220,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def setup_decks(events)
+		puts "Setup decks"
+
 		players.each do |player|
 			7.times() do
 				copper = create_card("Copper")
@@ -192,6 +237,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def setup_supplies(events)
+		puts "Setup supplies"
+
 		add_supply('Copper', 'treasure', 10, events)
 		add_supply('Silver', 'treasure', 10, events)
 		add_supply('Gold', 'treasure', 10, events)
@@ -208,7 +255,7 @@ class Game < ActiveRecord::Base
 		add_supply('Laboratory', 'kingdom', 10, events)
 		add_supply('Cellar', 'kingdom', 10, events)
 		add_supply('Militia', 'kingdom', 10, events)
-		add_supply('Chapel', 'kingdom', 10, events)
+		add_supply('Spy', 'kingdom', 10, events)
 		add_supply('Council Room', 'kingdom', 10, events)
 		add_supply('Thief', 'kingdom', 10, events)
 		add_supply('Adventurer', 'kingdom', 10, events)
@@ -217,6 +264,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def add_supply(name, type, count, events)
+		puts "Add supply #{name}"
+
 		card_pile = CardPile.create(name: name);
 		supply = Supply.create(
 			game: self,
@@ -239,6 +288,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def create_card(template_name)
+		puts "Create card #{template_name}"
+
 		card_template = CardTemplate.where(name: template_name).take()
 		card = Card.create(
 			card_template_id: card_template.id,
@@ -252,7 +303,9 @@ class Game < ActiveRecord::Base
 	end
 
 	def advance_phase(events)
+		puts "Advance phase"
 		if (has_dialog)
+			puts "(no - cannot advance due to dialog)"
 			return
 		end
 		if phase == 'init'
@@ -278,6 +331,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def set_phase(new_phase, events)
+		puts "Set phase to #{new_phase}"
 		self.phase = new_phase
 		events << {
       type: "phase_change",
@@ -288,6 +342,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def check_auto_advance(events)
+		puts "Checking for auto-advance"
 		if self.phase == 'action'
 			if current_player.actions == 0 or !current_player.hand.cards.joins(:card_attributes).where('card_attributes.key == "is_action" AND card_attributes.value == 1').exists?
 				advance_phase(events)
@@ -311,6 +366,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def check_victory(events)
+		puts "Checking for victory"
 		empty_pile_count = 0
 		provinces_empty = false
 		supplies.each do |supply|
@@ -394,6 +450,8 @@ class Game < ActiveRecord::Base
 	end
 
 	def do_cleanup(events)
+		puts "Cleanup"
+
 		player = current_player
 		player.play_area.cards.each do |card|
 			player.discard.add_card(card)

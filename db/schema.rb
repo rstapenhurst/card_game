@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140817215636) do
+ActiveRecord::Schema.define(version: 20140824191438) do
 
   create_table "card_attributes", force: true do |t|
     t.integer  "card_template_id"
@@ -29,6 +29,19 @@ ActiveRecord::Schema.define(version: 20140817215636) do
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  create_table "card_play_states", force: true do |t|
+    t.integer  "game_id"
+    t.integer  "card_id"
+    t.integer  "play_order"
+    t.integer  "current_attribute"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "player_id"
+  end
+
+  add_index "card_play_states", ["card_id"], name: "index_card_play_states_on_card_id"
+  add_index "card_play_states", ["game_id"], name: "index_card_play_states_on_game_id"
 
   create_table "card_templates", force: true do |t|
     t.string   "name"
