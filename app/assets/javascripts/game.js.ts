@@ -218,6 +218,7 @@ class CardGame {
 	cardGroup: cardGroup,
 	z: cardGroup.z,
 	y: cardGroup.y,
+  needsTranslate: parentGroup.y > 70,
 	scaleTween: null,
 	translateTween: null
 	};
@@ -235,8 +236,7 @@ class CardGame {
 
 		this.cardGroup.z = 1000;
 		this.scaleTween = self.game.add.tween(this.cardGroup.scale).to({x: 1.3, y: 1.3}, 200, Phaser.Easing.Cubic.In, true);
-		console.log("Hello");
-		if (this.y > 70) {
+		if (this.needsTranslate) {
 			this.translateTween = self.game.add.tween(this.cardGroup).to({y: this.y - 60}, 200, Phaser.Easing.Cubic.In, true);
 		}
 		this.parentGroup.sort('z', Phaser.Group.SORT_ASCENDING);
