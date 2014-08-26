@@ -19,6 +19,11 @@ class Util {
   public static CardHeight: number = 196;
   public static CardHeightPadded: number = 200;
   public static Padding: number = 10;
+  static centerText(bgWidth: number, text: Phaser.Text) {
+	var textWidth = text.context.measureText(text.text).width;
+	text.x = bgWidth / 2.0;
+	text.anchor.x = Math.round(textWidth * 0.5) / textWidth;
+  }
 }
 
 class Asset {
@@ -126,6 +131,7 @@ class CardGame {
 
   preload = () => {
     this.game.load.spritesheet('checkbox', Asset.image('checkbox.png'), 32, 32);
+    this.game.load.spritesheet('card_faces_empty', Asset.image('card_face_empty_sheet.png'), 128, 196);
 
     this.game.load.image('dialog_bg', Asset.image('dialog_bg.png'));
     this.game.load.image('card_face_empty', Asset.image('card_face_empty.png'));
@@ -156,32 +162,107 @@ class CardGame {
     return { group: cardGroup, sprite: sprite };
   }
 
+
   createCardView = (card: Card, parentGroup: Phaser.Group, textRotated: boolean, x: number, y: number): SpriteView => {
     var cardGroup = this.game.add.group();
     cardGroup.x = x;
     cardGroup.y = y;
+	cardGroup.z = parentGroup.children.length;
 
     parentGroup.addChild(cardGroup);
 
-    var text = this.game.add.text(0, 0, card.template_name + '\n cost:' + card.cost, {font: "10px Arial"});
-    text.x = 20;
-    text.y = 20;
+	var types = [];
 
-    if (textRotated) {
-      text.y = 64;
-      text.angle = -90;
-    }
+	if (card.is_action)
+		types.push('action');
+	if (card.is_treasure)
+		types.push('treasure');
+	if (card.is_victory)
+		types.push('victory');
+
+	var g:any = this.game.add.graphics(0, 0);
+	g.beginFill(0xdaa520);
+	g.drawCircle(18, 176, 14);
+
+
+	var text = this.game.add.text(0, 14, card.template_name.toUpperCase(), {font: "bold 12px Arial"});
+	Util.centerText(Util.CardWidth, text);
+
+	var typeText = this.game.add.text(40, 175, types.join(' - ').toUpperCase(), {font: "7px Arial"});
+	Util.centerText(Util.CardWidth, typeText);
+	var costText = this.game.add.text(15, 170, '' + card.cost, {font: "10px Arial"});
+
 
     var sprite;
 
     if (card.marked)
       sprite = cardGroup.create(0, 0, 'card_face_selected');
-    else
-      sprite = cardGroup.create(0, 0, 'card_face_empty');
+	else {
+		var frame = 0;
+		if (card.is_action)
+			frame = 0;
+			//if (card.is_reaction)
+			//frame = 2;
+		if (card.is_treasure)
+			frame = 3;
+		if (card.is_victory)
+			frame = 4;
+      sprite = cardGroup.create(0, 0, 'card_faces_empty');
+	  sprite.animations.frame = frame;
+	}
 
     sprite.inputEnabled = true;
 
+	var overCtx = {
+	parentGroup: parentGroup,
+	cardGroup: cardGroup,
+	z: cardGroup.z,
+	y: cardGroup.y,
+	scaleTween: null,
+	translateTween: null
+	};
+	var self = this;
+
+	sprite.events.onInputOver.add(function() {
+		if (this.translateTween) {
+			this.translateTween.stop();
+			this.translateTween = null;
+		}
+		if (this.scaleTween) {
+			this.scaleTween.stop();
+			this.scaleTween = null;
+		}
+
+		this.cardGroup.z = 1000;
+		this.scaleTween = self.game.add.tween(this.cardGroup.scale).to({x: 1.3, y: 1.3}, 200, Phaser.Easing.Cubic.In, true);
+		console.log("Hello");
+		if (this.y > 70) {
+			this.translateTween = self.game.add.tween(this.cardGroup).to({y: this.y - 60}, 200, Phaser.Easing.Cubic.In, true);
+		}
+		this.parentGroup.sort('z', Phaser.Group.SORT_ASCENDING);
+	}, overCtx)
+
+	sprite.events.onInputOut.add(function() {
+		if (this.translateTween) {
+			this.translateTween.stop();
+			this.translateTween = null;
+		}
+		if (this.scaleTween) {
+			this.scaleTween.stop();
+			this.scaleTween = null;
+		}
+
+		this.cardGroup.z = this.z;
+		this.scaleTween = self.game.add.tween(this.cardGroup.scale).to({x: 1, y: 1}, 200, Phaser.Easing.Cubic.In, true);
+		if (this.y != this.cardGroup.y)
+			this.translateTween = self.game.add.tween(this.cardGroup).to({y: this.y}, 200, Phaser.Easing.Cubic.In, true);
+		this.parentGroup.sort('z', Phaser.Group.SORT_ASCENDING);
+	}, overCtx);
+
+	cardGroup.add(g);
     cardGroup.add(text);
+    cardGroup.add(typeText);
+    cardGroup.add(costText);
 
     return { group: cardGroup, sprite: sprite };
   }
@@ -200,17 +281,6 @@ class CardGame {
     var xpos: number = 10;
     cards.forEach((x) => {
       this.drawCard(x, group, true, xpos, 0, () => { this.trigger('card_play_event', {card_id: x.id}); });
-      //var text = this.game.add.text(0, 0, x.template_name, {font: "10px Arial"});
-      //text.x = xpos + 20;
-      //text.y = 64;
-      //text.angle = -90;
-
-      //var sprite = group.create(xpos, 0, 'card_face_empty');
-      //sprite.inputEnabled = true;
-      //sprite.events.onInputDown.add(() => {
-      //  this.trigger('card_play_event', {card_id: x.id});
-      //}, this);
-      //group.add(text);
 
       xpos = xpos + 40;
     });
@@ -336,22 +406,10 @@ class CardGame {
         xpos += (10 + Util.CardPadded);
       }
 
-      var text = this.game.add.text(0, 0, x.template_name + "\n cost: " + x.cost , {font: "10px Arial"});
-      text.x = xpos + 30;
-      text.y = 20;
-
-
-      var bg = 'card_face_empty';
-      if (x.marked) {
-        bg = 'card_face_selected'
-        text.y -= 80;
-      }
-      var sprite = group.create(xpos, x.marked ? -80 : 0, bg);
-      sprite.inputEnabled = true;
-      sprite.events.onInputDown.add(() => {
+	  var view = this.createCardView(x, group, false, xpos, 0);
+      view.sprite.events.onInputDown.add(() => {
         this.clickCard('hand', x);
       }, this);
-      group.add(text);
 
       last = x;
 
