@@ -177,8 +177,7 @@ class Chancellor < Special
 	def process_response(game, player, dialog, data, events)
 		puts "Processing response for Chancellor. Data: #{data}"
 
-		data['optionset'].each do |optionset|
-			decision = optionset[0]
+		data['optionset'].each do |decision|
 			if decision == 'yes'
 				puts "Decided to activate chancellor ability"
 				player.deck.cards.each do |card|
