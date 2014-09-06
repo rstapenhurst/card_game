@@ -619,6 +619,38 @@ class CardGame {
 
   }
 
+  drawOptions = () => {
+    var raw = this.state.currentModal;
+    var optionset: OptionSet = raw.get('optionset');
+
+    var optInstructions = this.game.add.text(40, 128, 'Choose: ' + optionset.option_count_type + ' ' + optionset.option_count_value + ' option(s)', optionsStyle());
+
+    this.modalContents.addChild(optInstructions);
+
+
+    var optSet = this.state.createSelectorSet(
+      optionset.option_count_type, optionset.option_count_value,
+      (valid: boolean) => { optInstructions.fill = valid ? '#00ff00' : '#ff0000'; },
+      (checkbox: Markable, view: SpriteView) => {
+        if (checkbox.marked)
+          view.sprite.animations.frame = 0;
+        else
+          view.sprite.animations.frame = 1;
+      });
+
+    var y = 160;
+
+    for (var opt in optionset.options) {
+      var view = this.createView('checkbox', optionset.options[opt], this.modalContents, 40, y, optionsStyle());
+      view.sprite.animations.frame = 1;
+      var obj = {id: opt, marked: false};
+      view.sprite.events.onInputDown.add(optSet.add(obj, view), this);
+      y += 34;
+    }
+
+    optionset.optionsResult = optSet;
+  }
+
   drawCardsetOptions = () => {
     var raw = this.state.currentModal;
     var cardsets: Array<CardsetOption> = raw.get('cardsets');
@@ -640,6 +672,9 @@ class CardGame {
     if (this.state.modalEnabled) {
       this.modalContents.removeAll(true, true);
       switch (this.state.drawModal) {
+        case 'options':
+          this.drawOptions();
+          break;
         case 'cardset_options':
           this.drawCardsetOptions();
           break;
@@ -811,5 +846,5 @@ window.onload = () => {
   });
 }
 
-//comment = 17
+//comment = 18
 

@@ -119,3 +119,11 @@ interface Markable {
   id: number;
   marked: boolean;
 }
+
+declare class OptionSet {
+  option_count_type: string;
+  option_count_value: number;
+  options: any;
+  optionsResult: any;
+}
+

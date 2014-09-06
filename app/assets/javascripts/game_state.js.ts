@@ -233,9 +233,32 @@ class ClientState {
 	}
     this.dirty.phase = true;
   }
+
+  waitForPlayers(game: any) {
+
+    this.setInstructions("Waiting for players...");
+    this.setFunctions(doNothing, doNothing);
+    this.modalEnabled = false;
+    game.drawModal();
+  }
   
   handleDialog(raw: any) {
     switch (raw.get('dialog_type')) {
+      case 'options':
+        this.currentModal = raw
+        this.drawModal = 'options'
+        this.modalEnabled = true
+        this.setFunctions(doNothing, function(game) {
+          var optionset: OptionSet = raw.get('optionset');
+
+          if (optionset.optionsResult.valid()) {
+            console.log('dialog response');
+            game.trigger('dialog_respond_event', {dialog_id: raw.get('id'), optionset: optionset.optionsResult.results()});
+            this.waitForPlayers(game);
+          }
+
+        });
+        break;
       case 'cardset_options':
         this.currentModal = raw;
         this.drawModal = 'cardset_options';
@@ -263,10 +286,7 @@ class ClientState {
             }
 
             game.trigger('dialog_respond_event', {dialog_id: raw.get('id'), cardsets: results});
-            this.setInstructions("Waiting for players...");
-            this.setFunctions(doNothing, doNothing);
-            this.modalEnabled = false;
-            game.drawModal();
+            this.waitForPlayers(game);
           }
         });
         break;
