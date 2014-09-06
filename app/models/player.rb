@@ -53,7 +53,6 @@ class Player < ActiveRecord::Base
         }]
       }
 		end
-		q
 	end
 
 	def reveal_from_deck(events)

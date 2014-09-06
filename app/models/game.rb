@@ -13,6 +13,14 @@ class Game < ActiveRecord::Base
 		card_play_states.order(:play_order)
 	end
 
+	def print_card_stack
+		log_line = "Card stack: "
+		card_states.each do |state|
+			log_line << "->#{state.card.name}@#{state.current_attribute}"
+		end
+		puts log_line
+	end
+
 	def current_state
 		card_states.take
 	end
@@ -22,6 +30,7 @@ class Game < ActiveRecord::Base
 	end
 
 	def pop_card_state
+		puts "Popping card state"
 		current_state.destroy
 	end
 
@@ -137,6 +146,7 @@ class Game < ActiveRecord::Base
 
 	def play_card_from_attribute(player, card, next_attribute, events)
 		puts "#{player.name} play card from attribute: #{card.name} @ #{next_attribute}"
+		print_card_stack
 
 		dirty_actions = dirty_money = dirty_buys = false
 		pending_special = false
@@ -249,9 +259,8 @@ class Game < ActiveRecord::Base
 		add_supply('Curse', 'victory', (players.count == 1) ? 10 : ((players.count - 1) * 10), events)
 
 		add_supply('Village', 'kingdom', 10, events)
-		add_supply('Smithy', 'kingdom', 10, events)
 		add_supply('Feast', 'kingdom', 10, events)
-		add_supply('Market', 'kingdom', 10, events)
+		add_supply('Chancellor', 'kingdom', 10, events)
 		add_supply('Laboratory', 'kingdom', 10, events)
 		add_supply('Cellar', 'kingdom', 10, events)
 		add_supply('Library', 'kingdom', 10, events)
@@ -260,7 +269,6 @@ class Game < ActiveRecord::Base
 		add_supply('Thief', 'kingdom', 10, events)
 		add_supply('Adventurer', 'kingdom', 10, events)
 		add_supply('Moat', 'kingdom', 10, events)
-		add_supply('Great Hall', 'kingdom', (players.count <= 2) ? 8 : 12, events)
 	end
 
 	def add_supply(name, type, count, events)
@@ -299,11 +307,10 @@ class Game < ActiveRecord::Base
 	end
 
 	def has_dialog()
-		return dialogs.select{|d| d.stage > 0}.count() > 0
+		return dialogs.select{|d| d.stage > 0}.any?
 	end
 
 	def advance_phase(events)
-		puts "Advance phase"
 		if (has_dialog)
 			puts "(no - cannot advance due to dialog)"
 			return

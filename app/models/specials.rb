@@ -5,9 +5,13 @@ class Special
 	end
 
 	def execute_from_game(game, player, events)
+		puts "Special executing for #{player.name}"
 		execute(game, player, events)
 		if @should_resume
+			puts "After execution, resuming card play"
 			game.continue_card(events)
+		else
+			puts "Yield execution of card for special"
 		end
 	end
 
@@ -48,6 +52,9 @@ class GainCard < Special
 		cards = []
 		game.supplies.each do |supply|
 			candidate_card = supply.card_pile.top_card
+			if candidate_card == nil
+				next
+			end
 			puts "Testing #{candidate_card.name}"
 			if candidate_card != nil and condition.call(candidate_card)
 				puts "#{candidate_card.name} is gainable"
@@ -80,6 +87,7 @@ class GainCard < Special
 			}
 
 			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: special_type, state: state.to_s)
+			game.dialogs << dialog
 
 			events << {
 				type: 'dialog',
@@ -88,6 +96,9 @@ class GainCard < Special
 					id: dialog.id
 				}.merge(state)]
 			}
+			@should_resume = false
+		else
+			@should_resume = true
 		end
 
 	end
@@ -104,9 +115,6 @@ class Feast < GainCard
 
 		gain_card(game, player, 'Feast', Proc.new { |card| next card.cost <= 5 }, events)
 
-		unless game.has_dialog
-			@should_resume = true
-		end
 	end
 
 	def process_response(game, player, dialog, data, events)
@@ -134,11 +142,72 @@ class Feast < GainCard
 
 end
 
+class Chancellor < Special
+
+	def execute(game, player, events)
+		puts "Executing Chancellor card"
+
+		state = {
+			dialog_type: 'options',
+			prompt: 'Chancellor - put deck into discard?',
+			optionset: {
+				option_count_type: 'exactly',
+				option_count_type: 1,
+				options: {
+					yes: "Yes",
+					no: "No"
+				}
+			}
+		}
+
+		dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Chancellor', state: state.to_s)
+		game.dialogs << dialog
+
+		events << {
+			type: 'dialog',
+			logs_by_id: [{
+				owner_id: player.id,
+				id: dialog.id
+			}.merge(state)]
+		}
+		@should_resume = false
+
+	end
+
+	def process_response(game, player, dialog, data, events)
+		puts "Processing response for Chancellor. Data: #{data}"
+
+		data['optionset'].each do |optionset|
+			decision = optionset[0]
+			if decision == 'yes'
+				puts "Yes!"
+			else
+				puts "NO!"
+			end
+		end
+
+		events << {
+			type: 'dialog',
+			player_log: {
+				id: dialog.id,
+				dialog_type: 'complete'
+			}
+		}
+		dialog.stage = 0
+		dialog.save
+
+		game.continue_card(events)
+
+	end
+
+
+end
+
 class Library < Special
 
 	def execute(game, player, events)
 		puts "#{player.name} is executing Library"
-		q
+		@should_resume = true
 
 		while player.hand.cards.count < 7
 			next_card = player.reveal_from_deck(events)
@@ -166,6 +235,7 @@ class Library < Special
 				}
 
 				dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Library', state: state.to_s)
+				game.dialogs << dialog
 
 				events << {
 					type: 'dialog',
@@ -174,6 +244,7 @@ class Library < Special
 						id: dialog.id
 					}.merge(state)]
 				}
+				@should_resume = false
 				break
 			else
 				puts "Non-Action was drawn (#{next_card.name}). Moving to hand"
@@ -182,11 +253,10 @@ class Library < Special
 
 		end
 
-		if !game.has_dialog
+		if @should_resume
 			player.revealed.cards.each do |card|
 				player.move_card_public(card, 'revealed', 'discard', events)
 			end
-			@should_resume = true
 		end
 	end
 
@@ -197,7 +267,7 @@ class Library < Special
 			option = cardset['options'][0]
 			if option == 'draw'
 				puts "Chose to draw action"
-				opponent.move_card_from_source_public(card, 'hand', events)
+			  player.move_card_from_source_public(card, 'hand', events)
 			elsif option == 'set_aside'
 				puts "Chose to set action aside. Leaving in revealed pile."
 			end
@@ -259,6 +329,7 @@ class Spy < Special
 			}
 
 			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Spy', state: state.to_s)
+			game << dialog
 
 			events << {
 				type: 'dialog',
@@ -343,6 +414,7 @@ class Thief < Special
 			}
 
 			dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Thief', state: state.to_s)
+			game << dialog
 
 			events << {
 				type: 'dialog',
@@ -421,6 +493,7 @@ class Bureaucrat < Special
 				prompt: "Choose a victory to place on top of your deck"
 			}
 			dialog = Dialog.create(game: game, active_player: opponent, stage: 1, special_type: 'Bureaucrat', state: state.to_s)
+			game.dialogs << dialog
 
 			logs_by_id << {
 				owner_id: opponent.id,
@@ -693,6 +766,8 @@ class YouMayTrash < Special
 			prompt: "Trash up to 4 cards"
 		}
 		dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'YouMayTrash', state: state.to_s)
+		game.dialogs << dialog
+
 		events << {
 			type: 'dialog',
 			player_log: {
@@ -766,6 +841,7 @@ class AttackDiscardTo < Special
 				prompt: "Discard down to 3 cards"
 			}
 			dialog = Dialog.create(game: game, active_player: opponent, stage: 1, special_type: 'AttackDiscardTo', state: state.to_s)
+			game.dialogs << dialog
 
 			logs_by_id << {
 				owner_id: opponent.id,
@@ -835,6 +911,8 @@ class Cellar < Special
 			prompt: "Discard any number of cards"
 		}
 		dialog = Dialog.create(game: game, active_player: player, stage: 1, special_type: 'Cellar', state: state.to_s)
+		game.dialogs << dialog
+
 		events << {
 			type: 'dialog',
 			player_log: {
