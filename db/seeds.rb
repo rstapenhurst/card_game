@@ -113,14 +113,14 @@ def attribs
 end
 
 
-make_card("Province", "base", 8, attribs.victory(6).go)
-make_card("Duchy", "base", 5, attribs.victory(3).go)
-make_card("Estate", "base", 2, attribs.victory(1).go)
-make_card("Curse", "base", 0, attribs.victory(-1).go)
+make_card("Province", "core", 8, attribs.victory(6).go)
+make_card("Duchy", "core", 5, attribs.victory(3).go)
+make_card("Estate", "core", 2, attribs.victory(1).go)
+make_card("Curse", "core", 0, attribs.victory(-1).go)
 	
-make_card("Copper", "base", 0, attribs.treasure(1).go)
-make_card("Silver", "base", 3, attribs.treasure(2).go)
-make_card("Gold", "base", 6, attribs.treasure(3).go)
+make_card("Copper", "core", 0, attribs.treasure(1).go)
+make_card("Silver", "core", 3, attribs.treasure(2).go)
+make_card("Gold", "", 6, attribs.treasure(3).go)
 
 make_card("Village", "base", 3, attribs.cards(1).actions(2).go)
 make_card("Smithy", "base", 4, attribs.cards(3).go)

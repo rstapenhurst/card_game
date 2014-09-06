@@ -258,17 +258,16 @@ class Game < ActiveRecord::Base
 		add_supply('Province', 'victory', 10, events)
 		add_supply('Curse', 'victory', (players.count == 1) ? 10 : ((players.count - 1) * 10), events)
 
-		add_supply('Village', 'kingdom', 10, events)
-		add_supply('Feast', 'kingdom', 10, events)
+		setup_supplies_random(events)
+	end
+
+	def setup_supplies_random(events)
+
 		add_supply('Chancellor', 'kingdom', 10, events)
-		add_supply('Laboratory', 'kingdom', 10, events)
-		add_supply('Cellar', 'kingdom', 10, events)
-		add_supply('Library', 'kingdom', 10, events)
-		add_supply('Spy', 'kingdom', 10, events)
-		add_supply('Council Room', 'kingdom', 10, events)
-		add_supply('Thief', 'kingdom', 10, events)
-		add_supply('Adventurer', 'kingdom', 10, events)
-		add_supply('Moat', 'kingdom', 10, events)
+	  CardTemplate.where.not(set: 'core').shuffle.take(9).collect{|template| template.name}.each do |card_name|
+			add_supply(card_name, 'kingdom', 10, events)
+		end
+
 	end
 
 	def add_supply(name, type, count, events)
