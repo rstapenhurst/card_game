@@ -152,7 +152,7 @@ class Chancellor < Special
 			prompt: 'Chancellor - put deck into discard?',
 			optionset: {
 				option_count_type: 'exactly',
-				option_count_type: 1,
+				option_count_value: 1,
 				options: {
 					yes: "Yes",
 					no: "No"
@@ -180,9 +180,12 @@ class Chancellor < Special
 		data['optionset'].each do |optionset|
 			decision = optionset[0]
 			if decision == 'yes'
-				puts "Yes!"
+				puts "Decided to activate chancellor ability"
+				player.deck.cards.each do |card|
+					player.move_card_public(card, 'deck', 'discard', events)
+				end
 			else
-				puts "NO!"
+				puts "Decided not to activate chancellor ability"
 			end
 		end
 
